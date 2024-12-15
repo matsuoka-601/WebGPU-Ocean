@@ -1,1 +1,0 @@
-declare module 'webgpu-radix-sort';
