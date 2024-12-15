@@ -1,0 +1,11 @@
+{
+    "type": "module",
+    "devDependencies": {
+        "@webgpu/types": "^0.1.51",
+        "typescript": "^5.7.2",
+        "wgpu-matrix": "^3.3.0", 
+        "vite": "^6.0.3", 
+        "vite-plugin-glsl": "^1.3.1", 
+        "webgpu-radix-sort": "^1.0.7"
+    }
+}
