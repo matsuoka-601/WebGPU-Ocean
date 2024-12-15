@@ -1,5 +1,5 @@
 # webgpu-ocean
-A real-time 3d fluid simulation implemented in WebGPU. Works on your browsers which supports WebGPU. 
+A real-time 3d fluid simulation implemented in WebGPU. Works on your browsers which support WebGPU. 
 
 [You can try demo here!](https://webgpu-3d-water.netlify.app/)
 
