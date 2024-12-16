@@ -132,10 +132,8 @@ fn computeForce(@builtin(global_invocation_id) id: vec3<u32>) {
         //     }
         // }
 
-        // if (abs(cnt1 - cnt2) < 1e-5) {
-            fVisc *= viscosity;
-            let fGrv: vec3f = density_i * vec3f(0.0, -9.8, 0.0);
-            particles[id.x].force = fPress + fVisc + fGrv;
-        // }
+        fVisc *= viscosity;
+        let fGrv: vec3f = density_i * vec3f(0.0, -9.8, 0.0);
+        particles[id.x].force = fPress + fVisc + fGrv;
     }
 }
