@@ -104,7 +104,7 @@ fn computeForce(@builtin(global_invocation_id) id: vec3<u32>) {
             }
         }
 
-        // var cnt2 = 0.;
+        // // var cnt2 = 0.;
         // for (var j = 0u; j < n; j = j + 1) {
         //     if (id.x == j) {
         //         continue;
@@ -126,7 +126,6 @@ fn computeForce(@builtin(global_invocation_id) id: vec3<u32>) {
         //         fPress += -mass * nearSharedPressure * dir * nearDensityKernelGradient(r) / nearDensity_j;
         //         let relativeSpeed = particles[j].velocity - particles[id.x].velocity;
         //         fVisc += mass * relativeSpeed * viscosityKernelLaplacian(r) / density_j;
-        //         cnt2 += r;
         //     }
         // }
 

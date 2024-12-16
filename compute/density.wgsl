@@ -77,8 +77,6 @@ fn computeDensity(@builtin(global_invocation_id) id: vec3<u32>) {
             }
         }
         
-        // let a = arrayLength(&sortedParticles);
-        // let b = arrayLength(&prefixSum);
         // for (var j = 0u; j < n; j = j + 1) {
         //     let pos_j = particles[j].position;
         //     let r2 = dot(pos_i - pos_j, pos_i - pos_j);

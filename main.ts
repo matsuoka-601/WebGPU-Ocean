@@ -541,7 +541,7 @@ async function main() {
   });
 
 
-  const numParticles = 20000
+  const numParticles = 30000
   const particlesData = init_dambreak(numParticles)
 
 
@@ -786,9 +786,18 @@ async function main() {
   const SENSITIVITY = 0.005;
   const MIN_YTHETA = -0.99 * Math.PI / 2.;
   const MAX_YTHETA = 0;
-  const MIN_DISTANCE =  1.0;
-  const MAX_DISTANCE = 3.;
-  let distance = 2;
+  let boxWidth = 1.0;
+
+  const distanceParamsIndex = 0;
+  const distanceParams = [
+    {
+      MIN_DISTANCE: 1.7, 
+      MAX_DISTANCE: 3.0, 
+      INIT_DISTANCE: 2.2
+    }
+  ]
+  const distanceParam = distanceParams[distanceParamsIndex];
+  let currentDistance = distanceParam.INIT_DISTANCE;
 
   const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
 
@@ -800,9 +809,9 @@ async function main() {
   canvasElement.addEventListener("wheel", (event: WheelEvent) => {
     event.preventDefault();
     var scrollDelta = event.deltaY;
-    distance += ((scrollDelta > 0) ? 1 : -1) * 0.05;
-    if (distance < MIN_DISTANCE) distance = MIN_DISTANCE;
-    if (distance > MAX_DISTANCE) distance = MAX_DISTANCE;
+    currentDistance += ((scrollDelta > 0) ? 1 : -1) * 0.05;
+    if (currentDistance < distanceParam.MIN_DISTANCE) currentDistance = distanceParam.MIN_DISTANCE;
+    if (currentDistance > distanceParam.MAX_DISTANCE) currentDistance = distanceParam.MAX_DISTANCE;  
   })
   document.addEventListener("mousemove", (event: MouseEvent) => {
     if (isDragging) {
@@ -957,7 +966,7 @@ async function main() {
     // 行列の更新
     uniformsViews.size.set([diameter]);
     uniformsViews.projection_matrix.set(projection);
-    const view = recalculateView(distance, currentYtheta, currentXtheta, [0., -yHalf, 0.]);
+    const view = recalculateView(currentDistance, currentYtheta, currentXtheta, [0., -yHalf, 0.]);
     uniformsViews.view_matrix.set(view);
     fluidUniformsViews.view_matrix.set(view);
     device.queue.writeBuffer(uniformBuffer, 0, uniformsValues);
@@ -966,9 +975,12 @@ async function main() {
     const slider = document.getElementById("slider") as HTMLInputElement;
     const sliderValue = document.getElementById("slider-value") as HTMLSpanElement;
     const particle = document.getElementById("particle") as HTMLInputElement;
-    const val = parseInt(slider.value) / 200 + 0.5;
-    sliderValue.textContent = val.toFixed(2);
-    realBoxSizeViews.zHalf.set([zHalf * val]);
+    let curBoxWidth = parseInt(slider.value) / 200 + 0.5;
+    const minClosingSpeed = -0.02;
+    const dVal = Math.max(curBoxWidth - boxWidth, minClosingSpeed);
+    boxWidth += dVal;
+    sliderValue.textContent = curBoxWidth.toFixed(2);
+    realBoxSizeViews.zHalf.set([zHalf * boxWidth]);
     device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues);
 
     const commandEncoder = device.createCommandEncoder()
