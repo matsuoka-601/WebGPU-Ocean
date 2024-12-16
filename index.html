@@ -14,21 +14,28 @@
         align-items: center;
       }
       
-      /* canvas のサイズを指定 */
       canvas {
         width: 100%;
         height: 100%;
       }
 
       #slider-container {
-        position: fixed; /* 固定位置 */
-        top: 0; /* 上端に配置 */
-        left: 0; /* 左端に配置 */
-        width: 300px; /* スライダーの幅 */
-        margin: 20px; /* 少し余白を追加 */  
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 300px; 
+        margin: 20px; 
+      }
+      #howto-container {
+        position: fixed; 
+        bottom: 0; 
+        left: 0; 
+        width: 300px; 
+        margin: 20px; 
+        font-size: small;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-oDBfFTUe.js"></script>
+    <script type="module" crossorigin src="/assets/index-DkBf9qd_.js"></script>
   </head>
   <body>
     <div id="slider-container">
@@ -44,6 +51,10 @@
           Particles
         </label>
       </div>
+    </div>
+    <div id="howto-container">
+      <div> <b>Drag</b> to move camera </div>
+      <div> <b>Scroll</b> to zoom in and out </div>
     </div>
     <canvas id="fluidCanvas"></canvas>
   </body>
