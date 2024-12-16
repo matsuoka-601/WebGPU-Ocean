@@ -8,6 +8,7 @@ struct Particle {
 
 override xGrids: u32;
 override yGrids: u32;
+override gridCount: u32;
 override cellSize: f32;
 override xHalf: f32;
 override yHalf: f32;
@@ -33,6 +34,8 @@ fn main(@builtin(global_invocation_id) id : vec3<u32>)
   if (id.x < arrayLength(&particles))
   {
     let cellID: u32 = cellId(particles[id.x].position);
-    particleCellOffset[id.x] = atomicAdd(&cellParticleCount[cellID], 1u);
+    if (cellID < gridCount) {
+      particleCellOffset[id.x] = atomicAdd(&cellParticleCount[cellID], 1u);
+    }
   }
 }

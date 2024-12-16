@@ -13,6 +13,7 @@ struct Particle {
 
 override xGrids: u32;
 override yGrids: u32;
+override gridCount: u32;
 override cellSize: f32;
 override xHalf: f32;
 override yHalf: f32;
@@ -32,7 +33,11 @@ fn cellId(position: vec3f) -> u32 {
 fn main(@builtin(global_invocation_id) id : vec3<u32>) {
     if (id.x < arrayLength(&sourceParticles)) {
         let cellId: u32 = cellId(sourceParticles[id.x].position);
-        let targetIndex = cellParticleCount[cellId + 1] - particleCellOffset[id.x] - 1;
-        targetParticles[targetIndex] = sourceParticles[id.x];
+        if (cellId < gridCount) {
+            let targetIndex = cellParticleCount[cellId + 1] - particleCellOffset[id.x] - 1;
+            if (targetIndex < arrayLength(&targetParticles)) {
+                targetParticles[targetIndex] = sourceParticles[id.x];
+            }
+        }
     }
 }

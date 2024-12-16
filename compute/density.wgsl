@@ -19,6 +19,7 @@ override kernelRadiusPow6: f32;
 override xGrids: i32;
 override yGrids: i32;
 override zGrids: i32;
+override gridCount: u32;
 override cellSize: f32;
 override xHalf: f32;
 override yHalf: f32;
@@ -66,12 +67,14 @@ fn computeDensity(@builtin(global_invocation_id) id: vec3<u32>) {
                 let endCellNum = cellNumberFromId(v.x + dxMax, v.y + dy, v.z + dz);
                 let start = prefixSum[startCellNum];
                 let end = prefixSum[endCellNum + 1];
-                for (var j = start; j < end; j++) {
-                    let pos_j = sortedParticles[j].position;
-                    let r2 = dot(pos_i - pos_j, pos_i - pos_j);
-                    if (r2 < kernelRadiusPow2) {
-                        particles[id.x].density += mass * densityKernel(sqrt(r2));
-                        particles[id.x].nearDensity += mass * nearDensityKernel(sqrt(r2));
+                if (start < gridCount && end < gridCount) {
+                    for (var j = start; j < end; j++) {
+                        let pos_j = sortedParticles[j].position;
+                        let r2 = dot(pos_i - pos_j, pos_i - pos_j);
+                        if (r2 < kernelRadiusPow2) {
+                            particles[id.x].density += mass * densityKernel(sqrt(r2));
+                            particles[id.x].nearDensity += mass * nearDensityKernel(sqrt(r2));
+                        }
                     }
                 }
             }

@@ -367,6 +367,7 @@ async function main() {
     'xHalf' : xHalf, 
     'yHalf' : yHalf, 
     'zHalf' : zHalf, 
+    'gridCount': gridCount, 
     'xGrids': xGrids, 
     'yGrids': yGrids, 
     'cellSize' : cellSize, 
@@ -412,6 +413,7 @@ async function main() {
         'xGrids': xGrids, 
         'yGrids': yGrids, 
         'zGrids': zGrids, 
+        'gridCount': gridCount, 
         'cellSize' : cellSize, 
         'offset' : offset
       }, 
@@ -439,6 +441,7 @@ async function main() {
         'xGrids': xGrids, 
         'yGrids': yGrids, 
         'zGrids': zGrids, 
+        'gridCount': gridCount, 
         'cellSize' : cellSize, 
         'offset' : offset
       }, 
