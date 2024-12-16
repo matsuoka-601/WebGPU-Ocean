@@ -20,7 +20,8 @@ override dt: f32;
 @compute @workgroup_size(64)
 fn integrate(@builtin(global_invocation_id) id: vec3<u32>) {
   if (id.x < arrayLength(&particles)) {
-    var a = particles[id.x].force / particles[id.x].density;
+    // avoid zero division
+    var a = particles[id.x].force / (particles[id.x].density + 1e-32);
 
     let xPlusDist = realBoxSize.xHalf - particles[id.x].position.x;
     let xMinusDist = realBoxSize.xHalf + particles[id.x].position.x;
