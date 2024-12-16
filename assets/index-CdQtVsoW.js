@@ -175,6 +175,9 @@ fn computeForce(@builtin(global_invocation_id) id: vec3<u32>) {
                         let nearDensity_j = sortedParticles[j].nearDensity;
                         let pos_j = sortedParticles[j].position;
                         let r2 = dot(pos_i - pos_j, pos_i - pos_j); 
+                        if (density_j == 0. || nearDensity_j == 0.) {
+                            continue;
+                        }
                         if (r2 < kernelRadiusPow2 && 1e-64 < r2) {
                             let r = sqrt(r2);
                             let pressure_i = stiffness * (density_i - restDensity);
@@ -247,7 +250,8 @@ override dt: f32;
 @compute @workgroup_size(64)
 fn integrate(@builtin(global_invocation_id) id: vec3<u32>) {
   if (id.x < arrayLength(&particles)) {
-    var a = particles[id.x].force / particles[id.x].density;
+    
+    var a = particles[id.x].force / (particles[id.x].density + 1e-32);
 
     let xPlusDist = realBoxSize.xHalf - particles[id.x].position.x;
     let xMinusDist = realBoxSize.xHalf + particles[id.x].position.x;
