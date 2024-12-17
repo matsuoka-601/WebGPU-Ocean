@@ -24,7 +24,6 @@ override viscosity: f32;
 override xGrids: i32;
 override yGrids: i32;
 override zGrids: i32;
-override gridCount: u32;
 override cellSize: f32;
 override xHalf: f32;
 override yHalf: f32;
@@ -71,15 +70,15 @@ fn computeForce(@builtin(global_invocation_id) id: vec3<u32>) {
         var fVisc = vec3(0.0, 0.0, 0.0);
 
         let v = cellPosition(pos_i);
-        for (var dz = max(-1, -v.z); dz <= min(1, zGrids - v.z - 1); dz++) {
-            for (var dy = max(-1, -v.y); dy <= min(1, yGrids - v.y - 1); dy++) {
-                let dxMin = max(-1, -v.x);
-                let dxMax = min(1, xGrids - v.x - 1);
-                let startCellNum = cellNumberFromId(v.x + dxMin, v.y + dy, v.z + dz);
-                let endCellNum = cellNumberFromId(v.x + dxMax, v.y + dy, v.z + dz);
-                let start = prefixSum[startCellNum];
-                let end = prefixSum[endCellNum + 1];
-                if (start < gridCount && end < gridCount) {
+        if (v.x < xGrids && v.y < yGrids && v.z < zGrids) {
+            for (var dz = max(-1, -v.z); dz <= min(1, zGrids - v.z - 1); dz++) {
+                for (var dy = max(-1, -v.y); dy <= min(1, yGrids - v.y - 1); dy++) {
+                    let dxMin = max(-1, -v.x);
+                    let dxMax = min(1, xGrids - v.x - 1);
+                    let startCellNum = cellNumberFromId(v.x + dxMin, v.y + dy, v.z + dz);
+                    let endCellNum = cellNumberFromId(v.x + dxMax, v.y + dy, v.z + dz);
+                    let start = prefixSum[startCellNum];
+                    let end = prefixSum[endCellNum + 1];
                     for (var j = start; j < end; j++) {
                         let density_j = sortedParticles[j].density;
                         let nearDensity_j = sortedParticles[j].nearDensity;

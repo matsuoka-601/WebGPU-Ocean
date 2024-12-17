@@ -413,7 +413,6 @@ async function main() {
         'xGrids': xGrids, 
         'yGrids': yGrids, 
         'zGrids': zGrids, 
-        'gridCount': gridCount, 
         'cellSize' : cellSize, 
         'offset' : offset
       }, 
@@ -441,7 +440,6 @@ async function main() {
         'xGrids': xGrids, 
         'yGrids': yGrids, 
         'zGrids': zGrids, 
-        'gridCount': gridCount, 
         'cellSize' : cellSize, 
         'offset' : offset
       }, 
@@ -796,7 +794,7 @@ async function main() {
     {
       MIN_DISTANCE: 1.2, 
       MAX_DISTANCE: 3.0, 
-      INIT_DISTANCE: 2.0
+      INIT_DISTANCE: 2.2
     }
   ]
   const distanceParam = distanceParams[distanceParamsIndex];

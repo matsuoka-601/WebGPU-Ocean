@@ -19,7 +19,6 @@ override kernelRadiusPow6: f32;
 override xGrids: i32;
 override yGrids: i32;
 override zGrids: i32;
-override gridCount: u32;
 override cellSize: f32;
 override xHalf: f32;
 override yHalf: f32;
@@ -59,15 +58,15 @@ fn computeDensity(@builtin(global_invocation_id) id: vec3<u32>) {
 
 
         let v = cellPosition(pos_i);
-        for (var dz = max(-1, -v.z); dz <= min(1, zGrids - v.z - 1); dz++) {
-            for (var dy = max(-1, -v.y); dy <= min(1, yGrids - v.y - 1); dy++) {
-                let dxMin = max(-1, -v.x);
-                let dxMax = min(1, xGrids - v.x - 1);
-                let startCellNum = cellNumberFromId(v.x + dxMin, v.y + dy, v.z + dz);
-                let endCellNum = cellNumberFromId(v.x + dxMax, v.y + dy, v.z + dz);
-                let start = prefixSum[startCellNum];
-                let end = prefixSum[endCellNum + 1];
-                if (start < gridCount && end < gridCount) {
+        if (v.x < xGrids && v.y < yGrids && v.z < zGrids) {
+            for (var dz = max(-1, -v.z); dz <= min(1, zGrids - v.z - 1); dz++) {
+                for (var dy = max(-1, -v.y); dy <= min(1, yGrids - v.y - 1); dy++) {
+                    let dxMin = max(-1, -v.x);
+                    let dxMax = min(1, xGrids - v.x - 1);
+                    let startCellNum = cellNumberFromId(v.x + dxMin, v.y + dy, v.z + dz);
+                    let endCellNum = cellNumberFromId(v.x + dxMax, v.y + dy, v.z + dz);
+                    let start = prefixSum[startCellNum];
+                    let end = prefixSum[endCellNum + 1];
                     for (var j = start; j < end; j++) {
                         let pos_j = sortedParticles[j].position;
                         let r2 = dot(pos_i - pos_j, pos_i - pos_j);
@@ -79,6 +78,7 @@ fn computeDensity(@builtin(global_invocation_id) id: vec3<u32>) {
                 }
             }
         }
+
         
         // for (var j = 0u; j < n; j = j + 1) {
         //     let pos_j = particles[j].position;
