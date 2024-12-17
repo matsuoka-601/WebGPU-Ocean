@@ -22,9 +22,9 @@ import { mat4 } from 'wgpu-matrix'
 /// <reference types="@webgpu/types" />
 
 const kernelRadius = 0.07;
-const xHalf = 0.7;
+const xHalf = 1.2;
 const yHalf = 2.0;
-const zHalf = 0.7;
+const zHalf = 1.2;
 function init_dambreak(n: number) {
   let particles = new ArrayBuffer(64 * n);
   var cnt = 0;
@@ -181,7 +181,7 @@ async function main() {
     kernelRadiusPow6: Math.pow(kernelRadius, 6), 
     kernelRadiusPow9: Math.pow(kernelRadius, 9), 
     stiffness: 15.0, 
-    nearStiffness : 1.5, 
+    nearStiffness : 1.0,   
     mass: 1.0, 
     restDensity: 35000, 
     viscosity: 300000, 
@@ -544,7 +544,7 @@ async function main() {
   });
 
 
-  const numParticles = 20000
+  const numParticles = 30000
   const particlesData = init_dambreak(numParticles)
 
 
@@ -794,9 +794,9 @@ async function main() {
   const distanceParamsIndex = 0;
   const distanceParams = [
     {
-      MIN_DISTANCE: 1.7, 
+      MIN_DISTANCE: 1.2, 
       MAX_DISTANCE: 3.0, 
-      INIT_DISTANCE: 2.2
+      INIT_DISTANCE: 2.0
     }
   ]
   const distanceParam = distanceParams[distanceParamsIndex];
@@ -979,7 +979,7 @@ async function main() {
     const sliderValue = document.getElementById("slider-value") as HTMLSpanElement;
     const particle = document.getElementById("particle") as HTMLInputElement;
     let curBoxWidth = parseInt(slider.value) / 200 + 0.5;
-    const minClosingSpeed = -0.02;
+    const minClosingSpeed = -0.01;
     const dVal = Math.max(curBoxWidth - boxWidth, minClosingSpeed);
     boxWidth += dVal;
     sliderValue.textContent = curBoxWidth.toFixed(2);
