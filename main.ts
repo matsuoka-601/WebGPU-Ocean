@@ -22,13 +22,13 @@ import { mat4 } from 'wgpu-matrix'
 /// <reference types="@webgpu/types" />
 
 const kernelRadius = 0.07;
-const xHalf = 1.2;
+const xHalf = 0.7;
 const yHalf = 2.0;
-const zHalf = 1.2;
+const zHalf = 0.7;
 function init_dambreak(n: number) {
   let particles = new ArrayBuffer(64 * n);
   var cnt = 0;
-  const DIST_FACTOR = 0.5
+  const DIST_FACTOR = 0.4
 
 
   for (var y = -yHalf; cnt < n; y += DIST_FACTOR * kernelRadius) {
@@ -181,9 +181,9 @@ async function main() {
     kernelRadiusPow6: Math.pow(kernelRadius, 6), 
     kernelRadiusPow9: Math.pow(kernelRadius, 9), 
     stiffness: 15.0, 
-    nearStiffness : 1.0,   
+    nearStiffness : 1.,   
     mass: 1.0, 
-    restDensity: 35000, 
+    restDensity: 40000, 
     viscosity: 300000, 
     dt: 0.008, 
     xHalf: xHalf, 
@@ -542,7 +542,7 @@ async function main() {
   });
 
 
-  const numParticles = 30000
+  const numParticles = 20000
   const particlesData = init_dambreak(numParticles)
 
 
@@ -794,7 +794,7 @@ async function main() {
     {
       MIN_DISTANCE: 1.2, 
       MAX_DISTANCE: 3.0, 
-      INIT_DISTANCE: 2.2
+      INIT_DISTANCE: 1.8
     }
   ]
   const distanceParam = distanceParams[distanceParamsIndex];
@@ -970,6 +970,8 @@ async function main() {
     const view = recalculateView(currentDistance, currentYtheta, currentXtheta, [0., -yHalf, 0.]);
     uniformsViews.view_matrix.set(view);
     fluidUniformsViews.view_matrix.set(view);
+    mat4.inverse(view, inv_view);
+    fluidUniformsViews.inv_view_matrix.set(inv_view); // Don't forget!!!!
     device.queue.writeBuffer(uniformBuffer, 0, uniformsValues);
     device.queue.writeBuffer(fluidUniformBuffer, 0, fluidUniformsValues);
     // ボックスサイズの変更

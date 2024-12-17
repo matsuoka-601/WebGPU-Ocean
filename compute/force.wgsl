@@ -70,36 +70,41 @@ fn computeForce(@builtin(global_invocation_id) id: vec3<u32>) {
         var fVisc = vec3(0.0, 0.0, 0.0);
 
         let v = cellPosition(pos_i);
-        if (v.x < xGrids && v.y < yGrids && v.z < zGrids) {
-            for (var dz = max(-1, -v.z); dz <= min(1, zGrids - v.z - 1); dz++) {
-                for (var dy = max(-1, -v.y); dy <= min(1, yGrids - v.y - 1); dy++) {
-                    let dxMin = max(-1, -v.x);
-                    let dxMax = min(1, xGrids - v.x - 1);
-                    let startCellNum = cellNumberFromId(v.x + dxMin, v.y + dy, v.z + dz);
-                    let endCellNum = cellNumberFromId(v.x + dxMax, v.y + dy, v.z + dz);
-                    let start = prefixSum[startCellNum];
-                    let end = prefixSum[endCellNum + 1];
-                    for (var j = start; j < end; j++) {
-                        let density_j = sortedParticles[j].density;
-                        let nearDensity_j = sortedParticles[j].nearDensity;
-                        let pos_j = sortedParticles[j].position;
-                        let r2 = dot(pos_i - pos_j, pos_i - pos_j); 
-                        if (density_j == 0. || nearDensity_j == 0.) {
-                            continue;
-                        }
-                        if (r2 < kernelRadiusPow2 && 1e-64 < r2) {
-                            let r = sqrt(r2);
-                            let pressure_i = stiffness * (density_i - restDensity);
-                            let pressure_j = stiffness * (density_j - restDensity);
-                            let nearPressure_i = nearStiffness * nearDensity_i;
-                            let nearPressure_j = nearStiffness * nearDensity_j;
-                            let sharedPressure = (pressure_i + pressure_j) / 2.0;
-                            let nearSharedPressure = (nearPressure_i + nearPressure_j) / 2.0;
-                            let dir = normalize(pos_j - pos_i);
-                            fPress += -mass * sharedPressure * dir * densityKernelGradient(r) / density_j;
-                            fPress += -mass * nearSharedPressure * dir * nearDensityKernelGradient(r) / nearDensity_j;
-                            let relativeSpeed = sortedParticles[j].velocity - particles[id.x].velocity;
-                            fVisc += mass * relativeSpeed * viscosityKernelLaplacian(r) / density_j;
+        if (v.x < xGrids && 0 <= v.x && 
+            v.y < yGrids && 0 <= v.y && 
+            v.z < zGrids && 0 <= v.z) 
+        {
+            if (v.x < xGrids && v.y < yGrids && v.z < zGrids) {
+                for (var dz = max(-1, -v.z); dz <= min(1, zGrids - v.z - 1); dz++) {
+                    for (var dy = max(-1, -v.y); dy <= min(1, yGrids - v.y - 1); dy++) {
+                        let dxMin = max(-1, -v.x);
+                        let dxMax = min(1, xGrids - v.x - 1);
+                        let startCellNum = cellNumberFromId(v.x + dxMin, v.y + dy, v.z + dz);
+                        let endCellNum = cellNumberFromId(v.x + dxMax, v.y + dy, v.z + dz);
+                        let start = prefixSum[startCellNum];
+                        let end = prefixSum[endCellNum + 1];
+                        for (var j = start; j < end; j++) {
+                            let density_j = sortedParticles[j].density;
+                            let nearDensity_j = sortedParticles[j].nearDensity;
+                            let pos_j = sortedParticles[j].position;
+                            let r2 = dot(pos_i - pos_j, pos_i - pos_j); 
+                            if (density_j == 0. || nearDensity_j == 0.) {
+                                continue;
+                            }
+                            if (r2 < kernelRadiusPow2 && 1e-64 < r2) {
+                                let r = sqrt(r2);
+                                let pressure_i = stiffness * (density_i - restDensity);
+                                let pressure_j = stiffness * (density_j - restDensity);
+                                let nearPressure_i = nearStiffness * nearDensity_i;
+                                let nearPressure_j = nearStiffness * nearDensity_j;
+                                let sharedPressure = (pressure_i + pressure_j) / 2.0;
+                                let nearSharedPressure = (nearPressure_i + nearPressure_j) / 2.0;
+                                let dir = normalize(pos_j - pos_i);
+                                fPress += -mass * sharedPressure * dir * densityKernelGradient(r) / density_j;
+                                fPress += -mass * nearSharedPressure * dir * nearDensityKernelGradient(r) / nearDensity_j;
+                                let relativeSpeed = sortedParticles[j].velocity - particles[id.x].velocity;
+                                fVisc += mass * relativeSpeed * viscosityKernelLaplacian(r) / density_j;
+                            }
                         }
                     }
                 }

@@ -58,7 +58,10 @@ fn computeDensity(@builtin(global_invocation_id) id: vec3<u32>) {
 
 
         let v = cellPosition(pos_i);
-        if (v.x < xGrids && v.y < yGrids && v.z < zGrids) {
+        if (v.x < xGrids && 0 <= v.x && 
+            v.y < yGrids && 0 <= v.y && 
+            v.z < zGrids && 0 <= v.z) 
+        {
             for (var dz = max(-1, -v.z); dz <= min(1, zGrids - v.z - 1); dz++) {
                 for (var dy = max(-1, -v.y); dy <= min(1, yGrids - v.y - 1); dy++) {
                     let dxMin = max(-1, -v.x);
