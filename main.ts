@@ -22,9 +22,9 @@ import { mat4 } from 'wgpu-matrix'
 /// <reference types="@webgpu/types" />
 
 const kernelRadius = 0.07;
-const xHalf = 1.;
+const xHalf = 0.8;
 const yHalf = 2.0;
-const zHalf = 1.;
+const zHalf = 0.8;
 function init_dambreak(n: number) {
   let particles = new ArrayBuffer(64 * n);
   var cnt = 0;
@@ -181,11 +181,11 @@ async function main() {
     kernelRadiusPow5: Math.pow(kernelRadius, 5), 
     kernelRadiusPow6: Math.pow(kernelRadius, 6), 
     kernelRadiusPow9: Math.pow(kernelRadius, 9), 
-    stiffness: 15.0, 
+    stiffness: 30.0, 
     nearStiffness : 1.,   
     mass: 1.0, 
     restDensity: 40000, 
-    viscosity: 400000, 
+    viscosity: 200000, 
     dt: 0.008, 
     xHalf: xHalf, 
     yHalf: yHalf, 
@@ -543,7 +543,7 @@ async function main() {
   });
 
 
-  const numParticles = 30000
+  const numParticles = 20000
   const particlesData = init_dambreak(numParticles)
 
 
