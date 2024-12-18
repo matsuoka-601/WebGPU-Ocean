@@ -70,8 +70,9 @@ async function init() {
   }
 
   // 共通
-  const { devicePixelRatio } = window
+  // const { devicePixelRatio } = window
   // let devicePixelRatio  = 3.0;
+  let devicePixelRatio  = 1.0;
   canvas.width = devicePixelRatio * canvas.clientWidth
   canvas.height = devicePixelRatio * canvas.clientHeight
 
@@ -184,7 +185,7 @@ async function main() {
     nearStiffness : 1.,   
     mass: 1.0, 
     restDensity: 40000, 
-    viscosity: 300000, 
+    viscosity: 400000, 
     dt: 0.008, 
     xHalf: xHalf, 
     yHalf: yHalf, 
@@ -830,28 +831,25 @@ async function main() {
       }
       prevX = currentX;
       prevY = currentY;
-      console.log("Dragging... Delta:", deltaX, deltaY);
     }
   });
   document.addEventListener("mouseup", () => {
     if (isDragging) {
       isDragging = false;
-      console.log("Drag ended");
     }
   });
 
+  // デバイスロストの監視
+  let errorLog = document.getElementById('error-reason') as HTMLSpanElement;
+  device.lost.then(info => {
+    const reason = info.reason ? `reason: ${info.reason}` : 'unknown reason';
+    errorLog.textContent = reason;
+  });
 
   // let t = -Math.PI / 2 * 0.98;
   let t = 0;
   let sign = 1;
   async function frame() {
-    t += 0.05;
-    // if (t < -Math.PI / 2) {
-    //   sign *= -1;
-    // } 
-    // if (t > -Math.PI / 3) {
-    //   sign *= -1;
-    // }
     const start = performance.now();
 
     const circlePassDescriptor: GPURenderPassDescriptor = {
@@ -1030,12 +1028,17 @@ async function main() {
       circlePassEncoder.setPipeline(circlePipeline);
       circlePassEncoder.draw(6, numParticles);
       circlePassEncoder.end();
-      for (var iter = 0; iter < 6; iter++) {
-        const filterPassEncoder = commandEncoder.beginRenderPass(filterPassDescriptors[iter % 2]);
-        filterPassEncoder.setBindGroup(0, filterBindGroups[iter % 2]);
-        filterPassEncoder.setPipeline(filterPipeline);
-        filterPassEncoder.draw(6);
-        filterPassEncoder.end();  
+      for (var iter = 0; iter < 4; iter++) {
+        const filterPassEncoderX = commandEncoder.beginRenderPass(filterPassDescriptors[0]);
+        filterPassEncoderX.setBindGroup(0, filterBindGroups[0]);
+        filterPassEncoderX.setPipeline(filterPipeline);
+        filterPassEncoderX.draw(6);
+        filterPassEncoderX.end();  
+        const filterPassEncoderY = commandEncoder.beginRenderPass(filterPassDescriptors[1]);
+        filterPassEncoderY.setBindGroup(0, filterBindGroups[1]);
+        filterPassEncoderY.setPipeline(filterPipeline);
+        filterPassEncoderY.draw(6);
+        filterPassEncoderY.end();  
       }
   
       const thicknessPassEncoder = commandEncoder.beginRenderPass(thicknessPassDescriptor);
@@ -1044,12 +1047,17 @@ async function main() {
       thicknessPassEncoder.draw(6, numParticles);
       thicknessPassEncoder.end();
   
-      for (var iter = 0; iter < 4; iter++) { // 多いか？
-        const thicknessFilterPassEncoder = commandEncoder.beginRenderPass(thicknessFilterPassDescriptors[iter % 2]);
-        thicknessFilterPassEncoder.setBindGroup(0, thicknessFilterBindGroups[iter % 2]);
-        thicknessFilterPassEncoder.setPipeline(thicknessFilterPipeline);
-        thicknessFilterPassEncoder.draw(6);
-        thicknessFilterPassEncoder.end(); 
+      for (var iter = 0; iter < 1; iter++) { // 多いか？
+        const thicknessFilterPassEncoderX = commandEncoder.beginRenderPass(thicknessFilterPassDescriptors[0]);
+        thicknessFilterPassEncoderX.setBindGroup(0, thicknessFilterBindGroups[0]);
+        thicknessFilterPassEncoderX.setPipeline(thicknessFilterPipeline);
+        thicknessFilterPassEncoderX.draw(6);
+        thicknessFilterPassEncoderX.end(); 
+        const thicknessFilterPassEncoderY = commandEncoder.beginRenderPass(thicknessFilterPassDescriptors[1]);
+        thicknessFilterPassEncoderY.setBindGroup(0, thicknessFilterBindGroups[1]);
+        thicknessFilterPassEncoderY.setPipeline(thicknessFilterPipeline);
+        thicknessFilterPassEncoderY.draw(6);
+        thicknessFilterPassEncoderY.end(); 
       }
 
       const fluidPassEncoder = commandEncoder.beginRenderPass(fluidPassDescriptor);
@@ -1072,7 +1080,6 @@ async function main() {
 
     requestAnimationFrame(frame)
   } 
-
   requestAnimationFrame(frame)
 }
 

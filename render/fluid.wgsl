@@ -79,7 +79,7 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
     var refractionColor: vec3f = vec3f(0.7, 0.7, 0.7) * transmittance;
 
     let F0 = 0.02;
-    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 1.);
+    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 0.5);
 
     var reflectionDir: vec3f = reflect(rayDir, normal);
     // なんで w=0 なのか
