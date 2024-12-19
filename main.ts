@@ -22,18 +22,18 @@ import { mat4 } from 'wgpu-matrix'
 /// <reference types="@webgpu/types" />
 
 const kernelRadius = 0.07;
-const xHalf = 0.8;
+const xHalf = 1.0;
 const yHalf = 2.0;
-const zHalf = 0.8;
+const zHalf = 1.0;
 function init_dambreak(n: number) {
   let particles = new ArrayBuffer(64 * n);
   var cnt = 0;
-  const DIST_FACTOR = 0.4
+  const DIST_FACTOR = 0.6
 
 
-  for (var y = -yHalf; cnt < n; y += DIST_FACTOR * kernelRadius) {
+  for (var y = -yHalf * 0.95; cnt < n; y += DIST_FACTOR * kernelRadius) {
       for (var x = -0.95 * xHalf; x < 0.95 * xHalf && cnt < n; x += DIST_FACTOR * kernelRadius) {
-          for (var z = -0.95 * zHalf; z < 0. && cnt < n; z += DIST_FACTOR * kernelRadius) {
+          for (var z = -0.95 * xHalf; z < 0 * xHalf && cnt < n; z += DIST_FACTOR * kernelRadius) {
               let jitter = 0.0001 * Math.random();
               const offset = 64 * cnt;
               const particleViews = {
@@ -146,7 +146,7 @@ function recalculateView(r: number, xRotate: number, yRotate: number, target: nu
   return view;
 }
 
-const radius = 0.025;
+const radius = 0.04;
 const diameter = 2 * radius;
 
 async function main() {
@@ -181,12 +181,12 @@ async function main() {
     kernelRadiusPow5: Math.pow(kernelRadius, 5), 
     kernelRadiusPow6: Math.pow(kernelRadius, 6), 
     kernelRadiusPow9: Math.pow(kernelRadius, 9), 
-    stiffness: 30.0, 
-    nearStiffness : 1.,   
+    stiffness: 20., 
+    nearStiffness : 0.,   
     mass: 1.0, 
-    restDensity: 40000, 
-    viscosity: 200000, 
-    dt: 0.008, 
+    restDensity: 15000, 
+    viscosity: 100, 
+    dt: 0.006, 
     xHalf: xHalf, 
     yHalf: yHalf, 
     zHalf: zHalf, 
@@ -793,9 +793,9 @@ async function main() {
   const distanceParamsIndex = 0;
   const distanceParams = [
     {
-      MIN_DISTANCE: 1.2, 
+      MIN_DISTANCE: 1.5, 
       MAX_DISTANCE: 3.0, 
-      INIT_DISTANCE: 1.8
+      INIT_DISTANCE: 2.3
     }
   ]
   const distanceParam = distanceParams[distanceParamsIndex];
@@ -988,7 +988,7 @@ async function main() {
 
     // 計算のためのパス
     const computePass = commandEncoder.beginComputePass();
-    for (let i = 0; i < 1; i++) { // ここは 2 であるべき
+    for (let i = 0; i < 2; i++) { // ここは 2 であるべき
       computePass.setBindGroup(0, gridClearBindGroup);
       computePass.setPipeline(gridClearPipeline);
       computePass.dispatchWorkgroups(Math.ceil((gridCount + 1) / 64)) // これは gridCount だよな？

@@ -31,21 +31,23 @@ override zHalf: f32;
 override offset: f32;
 
 fn densityKernelGradient(r: f32) -> f32 {
-    let scale: f32 = 15.0 / (3.1415926535 * kernelRadiusPow5); // pow 使うと遅いかも
+    let scale: f32 = 45.0 / (3.1415926535 * kernelRadiusPow6); // pow 使うと遅いかも
     let d = kernelRadius - r;
-    return scale * d;
+    return scale * d * d;
 }
 
 fn nearDensityKernelGradient(r: f32) -> f32 {
-    let scale: f32 = 45.0 / (3.1415926535 * kernelRadiusPow6);
+    let scale: f32 = 45.0 / (3.1415926535 * kernelRadiusPow5); // 直す
+    let a = kernelRadiusPow9;
     let d = kernelRadius - r;
     return scale * d * d;
 }
 
 fn viscosityKernelLaplacian(r: f32) -> f32 {
-    let scale: f32 = 315.0 / (64.0 * 3.1415926535 * kernelRadiusPow9);
-    let dd = kernelRadius * kernelRadius - r * r;
-    return scale * dd * dd * dd;
+    let scale: f32 = 45.0 / (3.1415926535 * kernelRadiusPow6);
+    // let dd = kernelRadius * kernelRadius - r * r;
+    let d = kernelRadius - r;
+    return scale * d;
 }
 
 fn cellPosition(v: vec3f) -> vec3i {

@@ -32,9 +32,9 @@ fn nearDensityKernel(r: f32) -> f32 {
 }
 
 fn densityKernel(r: f32) -> f32 {
-    let scale = 15.0 / (2 * 3.1415926535 * kernelRadiusPow5);
-    let d = kernelRadius - r;
-    return scale * d * d;
+    let scale = 315.0 / (64. * 3.1415926535 * kernelRadiusPow2 * kernelRadiusPow2 * kernelRadiusPow5);
+    let dd = kernelRadius * kernelRadius - r * r;
+    return scale * dd * dd * dd;
 }
 
 fn cellPosition(v: vec3f) -> vec3i {
