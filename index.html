@@ -19,12 +19,19 @@
         height: 100%;
       }
 
-      #slider-container {
+      #ui-container {
         position: fixed; 
         top: 0; 
         left: 0; 
         width: 300px; 
         margin: 20px; 
+      }
+
+      #number-container {
+        position: fixed; 
+        top: 0; 
+        right: 0; 
+        margin: 20px;
       }
 
       #debug-info {
@@ -43,22 +50,30 @@
         font-size: small;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-BVER4vG1.js"></script>
+    <script type="module" crossorigin src="/assets/index-BGwgtehS.js"></script>
   </head>
   <body>
-    <div id="slider-container">
-      <div>
-        <label for="slider">Box width:</label>
-        <input type="range" id="slider" min="0" max="100" value="100" />
-        <span id="slider-value"></span>
-      </div>
-
+    <div id="ui-container">
       <div>
         <label>
           <input type="checkbox" id="particle">
           Particles
         </label>
       </div>
+      <div id="slider-container">
+        <label for="slider">Box width:</label>
+        <input type="range" id="slider" min="0" max="100" value="100" />
+        <span id="slider-value"></span>
+      </div>
+    </div>
+    <div id="number-container">
+      <b>Number of Particles</b>
+      <form id="number-button">
+        <label><input type="radio" name="options" value="10000"> Small (10,000 particles)</label><br>
+        <label><input type="radio" name="options" value="20000" checked> Medium (20,000 particles)</label><br>
+        <label><input type="radio" name="options" value="30000"> Large (30,000 particles)</label><br>
+        <label><input type="radio" name="options" value="40000"> Very Large (40,000 particles)</label><br>
+      </form>
     </div>
     <div id="howto-container">
       <div> <b>Drag</b> to move camera </div>
