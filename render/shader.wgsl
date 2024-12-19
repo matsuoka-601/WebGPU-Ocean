@@ -45,7 +45,9 @@ fn vs(
         vec2(-0.5,  0.5),
     );
 
-    let corner = vec3(corner_positions[vertex_index] * uniforms.size, 0.0);
+    let speed = sqrt(dot(particles[instance_index].velocity, particles[instance_index].velocity));
+    let sz = max(0., uniforms.size - 0.01 * speed);
+    let corner = vec3(corner_positions[vertex_index] * sz, 0.0);
     let uv = corner_positions[vertex_index] + 0.5;
 
     let real_position = particles[instance_index].position;

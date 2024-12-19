@@ -22,18 +22,20 @@ import { mat4 } from 'wgpu-matrix'
 /// <reference types="@webgpu/types" />
 
 const kernelRadius = 0.07;
-const xHalf = 1.0;
-const yHalf = 2.0;
-const zHalf = 1.0;
-function init_dambreak(n: number) {
-  let particles = new ArrayBuffer(64 * n);
+const xHalfMax = 2.0;
+const yHalfMax = 2.0;
+const zHalfMax = 2.0;
+const numParticlesMax = 40000;
+const particleStructSize = 64;
+function init_dambreak(n: number, environment: { xHalf: number; yHalf: number; zHalf: number;}) {
+  let particles = new ArrayBuffer(particleStructSize * n);
   var cnt = 0;
   const DIST_FACTOR = 0.6
 
 
-  for (var y = -yHalf * 0.95; cnt < n; y += DIST_FACTOR * kernelRadius) {
-      for (var x = -0.95 * xHalf; x < 0.95 * xHalf && cnt < n; x += DIST_FACTOR * kernelRadius) {
-          for (var z = -0.95 * xHalf; z < 0 * xHalf && cnt < n; z += DIST_FACTOR * kernelRadius) {
+  for (var y = -environment.yHalf * 0.95; cnt < n; y += DIST_FACTOR * kernelRadius) {
+      for (var x = -0.95 * environment.xHalf; x < 0.95 * environment.xHalf && cnt < n; x += DIST_FACTOR * kernelRadius) {
+          for (var z = -0.95 * environment.zHalf; z < 0 * environment.zHalf && cnt < n; z += DIST_FACTOR * kernelRadius) {
               let jitter = 0.0001 * Math.random();
               const offset = 64 * cnt;
               const particleViews = {
@@ -187,9 +189,9 @@ async function main() {
     restDensity: 15000, 
     viscosity: 100, 
     dt: 0.006, 
-    xHalf: xHalf, 
-    yHalf: yHalf, 
-    zHalf: zHalf, 
+    xHalf: xHalfMax, 
+    yHalf: yHalfMax, 
+    zHalf: zHalfMax, 
   }
   // レンダリングパイプライン
   const circlePipeline = device.createRenderPipeline({
@@ -355,9 +357,9 @@ async function main() {
   })
   // 計算のためのパイプライン
   const cellSize = 1.0 * kernelRadius; 
-  const xLen = 2.0 * xHalf;
-  const yLen = 2.0 * yHalf;
-  const zLen = 2.0 * zHalf;
+  const xLen = 2.0 * xHalfMax;
+  const yLen = 2.0 * yHalfMax;
+  const zLen = 2.0 * zHalfMax;
   const sentinel = 4 * cellSize;
   const xGrids = Math.ceil((xLen + sentinel) / cellSize);
   const yGrids = Math.ceil((yLen + sentinel) / cellSize);
@@ -365,9 +367,9 @@ async function main() {
   const gridCount = xGrids * yGrids * zGrids;
   const offset = sentinel / 2;
   const sizeConstants = {
-    'xHalf' : xHalf, 
-    'yHalf' : yHalf, 
-    'zHalf' : zHalf, 
+    'xHalf' : xHalfMax, 
+    'yHalf' : yHalfMax, 
+    'zHalf' : zHalfMax, 
     'gridCount': gridCount, 
     'xGrids': xGrids, 
     'yGrids': yGrids, 
@@ -408,9 +410,9 @@ async function main() {
         'kernelRadiusPow5': constants.kernelRadiusPow5, 
         'kernelRadiusPow6': constants.kernelRadiusPow6, 
         'mass': constants.mass, 
-        'xHalf' : xHalf, 
-        'yHalf' : yHalf, 
-        'zHalf' : zHalf, 
+        'xHalf' : xHalfMax, 
+        'yHalf' : yHalfMax, 
+        'zHalf' : zHalfMax, 
         'xGrids': xGrids, 
         'yGrids': yGrids, 
         'zGrids': zGrids, 
@@ -435,9 +437,9 @@ async function main() {
         'nearStiffness': constants.nearStiffness, 
         'viscosity': constants.viscosity, 
         'restDensity': constants.restDensity, 
-        'xHalf' : xHalf, 
-        'yHalf' : yHalf, 
-        'zHalf' : zHalf, 
+        'xHalf' : xHalfMax, 
+        'yHalf' : yHalfMax, 
+        'zHalf' : zHalfMax, 
         'xGrids': xGrids, 
         'yGrids': yGrids, 
         'zGrids': zGrids, 
@@ -543,10 +545,6 @@ async function main() {
   });
 
 
-  const numParticles = 20000
-  const particlesData = init_dambreak(numParticles)
-
-
   // uniform buffer を作る
   const uniformsValues = new ArrayBuffer(144);
   const uniformsViews = {
@@ -585,14 +583,12 @@ async function main() {
     yHalf: new Float32Array(realBoxSizeValues, 4, 1),
     zHalf: new Float32Array(realBoxSizeValues, 8, 1),
   };
-  realBoxSizeViews.xHalf.set([xHalf]);
-  realBoxSizeViews.yHalf.set([yHalf]);
-  realBoxSizeViews.zHalf.set([zHalf]);
+
 
   // storage buffer を作る
   const particlesBuffer = device.createBuffer({
     label: 'particles buffer', 
-    size: particlesData.byteLength, 
+    size: particleStructSize * numParticlesMax, 
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
   const cellParticleCountBuffer = device.createBuffer({ // 累積和はここに保存
@@ -602,15 +598,14 @@ async function main() {
   })
   const targetParticlesBuffer = device.createBuffer({
     label: 'target particles buffer', 
-    size: particlesData.byteLength, 
+    size: particleStructSize * numParticlesMax, 
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
   const particleCellOffsetBuffer = device.createBuffer({
     label: 'particle cell offset buffer', 
-    size: 4 * numParticles,
+    size: 4 * numParticlesMax,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
-  device.queue.writeBuffer(particlesBuffer, 0, particlesData)
 
 
   const uniformBuffer = device.createBuffer({
@@ -781,25 +776,21 @@ async function main() {
   let isDragging = false;
   let prevX = 0;
   let prevY = 0;
-  let deltaX = 0;
-  let deltaY = 0;
   let currentXtheta = Math.PI / 4;
   let currentYtheta = -Math.PI / 12;
   const SENSITIVITY = 0.005;
   const MIN_YTHETA = -0.99 * Math.PI / 2.;
   const MAX_YTHETA = 0;
-  let boxWidth = 1.0;
+  let boxWidthRatio = 1.0;
 
-  const distanceParamsIndex = 0;
+  let distanceParamsIndex = 1; // 20000 
   const distanceParams = [
-    {
-      MIN_DISTANCE: 1.5, 
-      MAX_DISTANCE: 3.0, 
-      INIT_DISTANCE: 2.3
-    }
+    { MIN_DISTANCE: 1.3, MAX_DISTANCE: 3.0, INIT_DISTANCE: 1.6 },
+    { MIN_DISTANCE: 1.8, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.1 }, 
+    { MIN_DISTANCE: 2.0, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.3 }, 
+    { MIN_DISTANCE: 2.3, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.7 }, 
   ]
-  const distanceParam = distanceParams[distanceParamsIndex];
-  let currentDistance = distanceParam.INIT_DISTANCE;
+  let currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE; 
 
   const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
 
@@ -812,6 +803,7 @@ async function main() {
     event.preventDefault();
     var scrollDelta = event.deltaY;
     currentDistance += ((scrollDelta > 0) ? 1 : -1) * 0.05;
+    const distanceParam = distanceParams[distanceParamsIndex];
     if (currentDistance < distanceParam.MIN_DISTANCE) currentDistance = distanceParam.MIN_DISTANCE;
     if (currentDistance > distanceParam.MAX_DISTANCE) currentDistance = distanceParam.MAX_DISTANCE;  
   })
@@ -846,11 +838,59 @@ async function main() {
     errorLog.textContent = reason;
   });
 
-  // let t = -Math.PI / 2 * 0.98;
-  let t = 0;
-  let sign = 1;
+  // ボタン押下の監視
+  let form = document.getElementById('number-button') as HTMLFormElement;
+  let pressed = false;
+  let pressedButton = ""
+  form.addEventListener('change', function(event) {
+    const target = event.target as HTMLInputElement;
+    if (target?.name === 'options') {
+      pressed = true;
+      pressedButton = target.value;
+    }
+  });
+
+  let boxSizes = new Map<string, { xHalf: number, yHalf: number, zHalf: number }>();
+  boxSizes.set("10000", { xHalf: 0.7, yHalf: 2.0, zHalf: 0.7, });
+  boxSizes.set("20000", { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0, });
+  boxSizes.set("30000", { xHalf: 1.2, yHalf: 2.0, zHalf: 1.2, });
+  boxSizes.set("40000", { xHalf: 1.4, yHalf: 2.0, zHalf: 1.4, });
+
+  let environment = {
+    boxSize: boxSizes.get("20000") ?? { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0, }, 
+    numParticles: 20000, 
+  } 
+
+  const particlesData = init_dambreak(environment.numParticles, environment.boxSize);
+  device.queue.writeBuffer(particlesBuffer, 0, particlesData)
+
   async function frame() {
     const start = performance.now();
+
+    if (pressed) { // 10000 フレームごとにリセット
+      console.log(pressedButton);
+      // やるべきこと
+      // - ボックスサイズの初期化
+      // - numParticles の変更
+      // - カメラの初期化
+      // - バーを 100 に戻す
+      // - 粒子のデータの初期化と書き込み
+      // - distanceParams の書き換え
+      environment.boxSize = boxSizes.get(pressedButton)?? { xHalf: 0.8, yHalf: 2.0, zHalf: 0.8, };
+      environment.numParticles = parseInt(pressedButton);
+      currentXtheta = Math.PI / 4;
+      currentYtheta = -Math.PI / 12;
+      const particlesData = init_dambreak(environment.numParticles, environment.boxSize);
+      device.queue.writeBuffer(particlesBuffer, 0, particlesData);
+      distanceParamsIndex = environment.numParticles / 10000 - 1;
+      currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE;
+      let slider = document.getElementById("slider") as HTMLInputElement;
+      slider.value = "100";
+
+      console.log(distanceParams[distanceParamsIndex]);
+      
+      pressed = false;
+    }
 
     const circlePassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [
@@ -961,11 +1001,12 @@ async function main() {
       }
     ]
 
+    
 
     // 行列の更新
     uniformsViews.size.set([diameter]);
     uniformsViews.projection_matrix.set(projection);
-    const view = recalculateView(currentDistance, currentYtheta, currentXtheta, [0., -yHalf, 0.]);
+    const view = recalculateView(currentDistance, currentYtheta, currentXtheta, [0., -environment.boxSize.yHalf, 0.]);
     uniformsViews.view_matrix.set(view);
     fluidUniformsViews.view_matrix.set(view);
     mat4.inverse(view, inv_view);
@@ -976,12 +1017,14 @@ async function main() {
     const slider = document.getElementById("slider") as HTMLInputElement;
     const sliderValue = document.getElementById("slider-value") as HTMLSpanElement;
     const particle = document.getElementById("particle") as HTMLInputElement;
-    let curBoxWidth = parseInt(slider.value) / 200 + 0.5;
+    let curBoxWidthRatio = parseInt(slider.value) / 200 + 0.5;
     const minClosingSpeed = -0.01;
-    const dVal = Math.max(curBoxWidth - boxWidth, minClosingSpeed);
-    boxWidth += dVal;
-    sliderValue.textContent = curBoxWidth.toFixed(2);
-    realBoxSizeViews.zHalf.set([zHalf * boxWidth]);
+    const dVal = Math.max(curBoxWidthRatio - boxWidthRatio, minClosingSpeed);
+    boxWidthRatio += dVal;
+    sliderValue.textContent = curBoxWidthRatio.toFixed(2);
+    realBoxSizeViews.xHalf.set([environment.boxSize.xHalf]);
+    realBoxSizeViews.yHalf.set([environment.boxSize.yHalf]);
+    realBoxSizeViews.zHalf.set([environment.boxSize.zHalf * boxWidthRatio]);
     device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues);
 
     const commandEncoder = device.createCommandEncoder()
@@ -994,7 +1037,7 @@ async function main() {
       computePass.dispatchWorkgroups(Math.ceil((gridCount + 1) / 64)) // これは gridCount だよな？
       computePass.setBindGroup(0, gridBuildBindGroup);
       computePass.setPipeline(gridBuildPipeline);
-      computePass.dispatchWorkgroups(Math.ceil(numParticles / 64)) 
+      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64)) 
 
       const prefixSumKernel = new PrefixSumKernel({
         device: device, data: cellParticleCountBuffer, count: gridCount + 1
@@ -1003,21 +1046,21 @@ async function main() {
 
       computePass.setBindGroup(0, reorderBindGroup);
       computePass.setPipeline(reorderPipeline)
-      computePass.dispatchWorkgroups(Math.ceil(numParticles / 64))
+      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64))
 
       computePass.setBindGroup(0, densityBindGroup)
       computePass.setPipeline(densityPipeline)
-      computePass.dispatchWorkgroups(Math.ceil(numParticles / 64))
+      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64))
       // この reorder をしないと，ソートした密度がゼロのままになる 
       computePass.setBindGroup(0, reorderBindGroup);
       computePass.setPipeline(reorderPipeline)
-      computePass.dispatchWorkgroups(Math.ceil(numParticles / 64))
+      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64))
       computePass.setBindGroup(0, forceBindGroup)
       computePass.setPipeline(forcePipeline)
-      computePass.dispatchWorkgroups(Math.ceil(numParticles / 64)) 
+      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64)) 
       computePass.setBindGroup(0, integrateBindGroup)
       computePass.setPipeline(integratePipeline)
-      computePass.dispatchWorkgroups(Math.ceil(numParticles / 64)) 
+      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64)) 
     }
     computePass.end()
 
@@ -1026,7 +1069,7 @@ async function main() {
       const circlePassEncoder = commandEncoder.beginRenderPass(circlePassDescriptor);
       circlePassEncoder.setBindGroup(0, circleBindGroup);
       circlePassEncoder.setPipeline(circlePipeline);
-      circlePassEncoder.draw(6, numParticles);
+      circlePassEncoder.draw(6, environment.numParticles);
       circlePassEncoder.end();
       for (var iter = 0; iter < 4; iter++) {
         const filterPassEncoderX = commandEncoder.beginRenderPass(filterPassDescriptors[0]);
@@ -1044,7 +1087,7 @@ async function main() {
       const thicknessPassEncoder = commandEncoder.beginRenderPass(thicknessPassDescriptor);
       thicknessPassEncoder.setBindGroup(0, thicknessBindGroup);
       thicknessPassEncoder.setPipeline(thicknessPipeline);
-      thicknessPassEncoder.draw(6, numParticles);
+      thicknessPassEncoder.draw(6, environment.numParticles);
       thicknessPassEncoder.end();
   
       for (var iter = 0; iter < 1; iter++) { // 多いか？
@@ -1069,14 +1112,14 @@ async function main() {
       const ballPassEncoder = commandEncoder.beginRenderPass(ballPassDescriptor);
       ballPassEncoder.setBindGroup(0, ballBindGroup);
       ballPassEncoder.setPipeline(ballPipeline);
-      ballPassEncoder.draw(6, numParticles);
+      ballPassEncoder.draw(6, environment.numParticles);
       ballPassEncoder.end();
     }
 
 
     device.queue.submit([commandEncoder.finish()])
     const end = performance.now();
-    console.log(`js: ${(end - start).toFixed(1)}ms`);
+    // console.log(`js: ${(end - start).toFixed(1)}ms`);
 
     requestAnimationFrame(frame)
   } 
