@@ -184,7 +184,7 @@ async function main() {
     kernelRadiusPow6: Math.pow(kernelRadius, 6), 
     kernelRadiusPow9: Math.pow(kernelRadius, 9), 
     stiffness: 20., 
-    nearStiffness : 0.,   
+    nearStiffness : 1.,   
     mass: 1.0, 
     restDensity: 15000, 
     viscosity: 100, 
@@ -499,12 +499,12 @@ async function main() {
   {
     // The order of the array layers is [+X, -X, +Y, -Y, +Z, -Z]
     const imgSrcs = [
-      'cubemap/posx.jpg',
-      'cubemap/negx.jpg',
-      'cubemap/posy.jpg',
-      'cubemap/negy.jpg',
-      'cubemap/posz.jpg',
-      'cubemap/negz.jpg',
+      'cubemap/posx.png',
+      'cubemap/negx.png',
+      'cubemap/posy.png',
+      'cubemap/negy.png',
+      'cubemap/posz.png',
+      'cubemap/negz.png',
     ];
     const promises = imgSrcs.map(async (src) => {
       const response = await fetch(src);
