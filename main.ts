@@ -60,6 +60,8 @@ async function init() {
   const adapter = await navigator.gpu.requestAdapter()
 
   if (!adapter) {
+    let errorLog = document.getElementById('error-reason') as HTMLSpanElement;
+    errorLog.textContent = 'Your browser does not seem to support WebGPU, but you can still watch the video <a href="https://www.youtube.com/watch?v=PEQXiCIyp7g">here</a>.'
     throw new Error()
   }
 
