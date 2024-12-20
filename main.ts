@@ -57,11 +57,15 @@ function init_dambreak(n: number, environment: { xHalf: number; yHalf: number; z
 async function init() {
   const canvas: HTMLCanvasElement = document.querySelector('canvas')!
 
+  if (!navigator.gpu) {
+    alert("WebGPU is not supported on your browser.");
+    throw new Error()
+  }
+
   const adapter = await navigator.gpu.requestAdapter()
 
   if (!adapter) {
-    let errorLog = document.getElementById('error-reason') as HTMLSpanElement;
-    errorLog.textContent = 'Your browser does not seem to support WebGPU, but you can still watch the video <a href="https://www.youtube.com/watch?v=PEQXiCIyp7g">here</a>.'
+    alert("Adapter is not available.");
     throw new Error()
   }
 
