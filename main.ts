@@ -25,12 +25,12 @@ const kernelRadius = 0.07;
 const xHalfMax = 2.0;
 const yHalfMax = 2.0;
 const zHalfMax = 2.0;
-const numParticlesMax = 40000;
+const numParticlesMax = 100000;
 const particleStructSize = 64;
 function init_dambreak(n: number, environment: { xHalf: number; yHalf: number; zHalf: number;}) {
   let particles = new ArrayBuffer(particleStructSize * n);
   var cnt = 0;
-  const DIST_FACTOR = 0.6
+  const DIST_FACTOR = 0.5
 
 
   for (var y = -environment.yHalf * 0.95; cnt < n; y += DIST_FACTOR * kernelRadius) {
@@ -785,10 +785,11 @@ async function main() {
 
   let distanceParamsIndex = 1; // 20000 
   const distanceParams = [
-    { MIN_DISTANCE: 1.3, MAX_DISTANCE: 3.0, INIT_DISTANCE: 1.6 },
-    { MIN_DISTANCE: 1.8, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.1 }, 
-    { MIN_DISTANCE: 2.0, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.3 }, 
-    { MIN_DISTANCE: 2.3, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.7 }, 
+    { MIN_DISTANCE: 1.3, MAX_DISTANCE: 3.0, INIT_DISTANCE: 1.6 }, // 10000
+    { MIN_DISTANCE: 1.8, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.1 }, // 20000
+    { MIN_DISTANCE: 2.0, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.3 }, // 30000
+    { MIN_DISTANCE: 2.3, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.7 }, // 40000
+    { MIN_DISTANCE: 3.0, MAX_DISTANCE: 6.0, INIT_DISTANCE: 4.0 }, // 100000
   ]
   let currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE; 
 
@@ -850,14 +851,17 @@ async function main() {
     }
   });
 
-  let boxSizes = new Map<string, { xHalf: number, yHalf: number, zHalf: number }>();
-  boxSizes.set("10000", { xHalf: 0.7, yHalf: 2.0, zHalf: 0.7, });
-  boxSizes.set("20000", { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0, });
-  boxSizes.set("30000", { xHalf: 1.2, yHalf: 2.0, zHalf: 1.2, });
-  boxSizes.set("40000", { xHalf: 1.4, yHalf: 2.0, zHalf: 1.4, });
-
+  let boxSizeKey = ["10000", "20000", "30000", "40000", "100000"]
+  let boxSizes = [
+    { xHalf: 0.7, yHalf: 2.0, zHalf: 0.7 }, 
+    { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0 }, 
+    { xHalf: 1.2, yHalf: 2.0, zHalf: 1.2 }, 
+    { xHalf: 1.4, yHalf: 2.0, zHalf: 1.4 }, 
+    { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
+  ];
+  
   let environment = {
-    boxSize: boxSizes.get("20000") ?? { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0, }, 
+    boxSize: boxSizes[1], 
     numParticles: 20000, 
   } 
 
@@ -876,13 +880,13 @@ async function main() {
       // - バーを 100 に戻す
       // - 粒子のデータの初期化と書き込み
       // - distanceParams の書き換え
-      environment.boxSize = boxSizes.get(pressedButton)?? { xHalf: 0.8, yHalf: 2.0, zHalf: 0.8, };
+      distanceParamsIndex = boxSizeKey.indexOf(pressedButton);
+      environment.boxSize = boxSizes[distanceParamsIndex];
       environment.numParticles = parseInt(pressedButton);
       currentXtheta = Math.PI / 4;
       currentYtheta = -Math.PI / 12;
       const particlesData = init_dambreak(environment.numParticles, environment.boxSize);
       device.queue.writeBuffer(particlesBuffer, 0, particlesData);
-      distanceParamsIndex = environment.numParticles / 10000 - 1;
       currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE;
       let slider = document.getElementById("slider") as HTMLInputElement;
       slider.value = "100";

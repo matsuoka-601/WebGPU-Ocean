@@ -40,7 +40,7 @@ fn vs(
 
 
     let speed = sqrt(dot(particles[instance_index].velocity, particles[instance_index].velocity));
-    let sz = max(0., uniforms.size - 0.01 * speed);
+    let sz = max(0., uniforms.size - 0.00 * speed);
     let corner = vec3(corner_positions[vertex_index] * sz, 0.0);
     let uv = corner_positions[vertex_index] + 0.5;
 

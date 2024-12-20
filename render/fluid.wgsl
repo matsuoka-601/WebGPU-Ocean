@@ -37,28 +37,21 @@ fn getViewPosFromTexCoord(tex_coord: vec2f, iuv: vec2f) -> vec3f {
 fn fs(input: FragmentInput) -> @location(0) vec4f {
     var depth: f32 = abs(textureLoad(texture, vec2u(input.iuv), 0).r);
 
-    // ここが有効になるためには，背景の depth を適切に設定しなきゃいけないな．
-    // あと，depth が負なのかどうかも関係してくる．
+    let bgColor: vec3f = vec3f(0.8, 0.8, 0.8);
+
     if (depth >= 1e4 || depth <= 0.) {
-        // とりあえず黒を返す．本来なら背景色を返すべき（Babylon.js を参照）
-        // return vec4f(vec3f(depth), 1.);
-        return vec4f(0.7, 0.7, 0.7, 1.);
+        return vec4f(bgColor, 1.);
     }
 
     var viewPos: vec3f = computeViewPosFromUVDepth(input.uv, depth); // z は負
 
-    // 法線の計算 ⇒ 全部ベクトルが右/上側を向くように計算している？
-    // 1 ピクセル右
     var ddx: vec3f = getViewPosFromTexCoord(input.uv + vec2f(uniforms.texel_size.x, 0.), input.iuv + vec2f(1.0, 0.0)) - viewPos; 
-    // 1 ピクセル上
     var ddy: vec3f = getViewPosFromTexCoord(input.uv + vec2f(0., uniforms.texel_size.y), input.iuv + vec2f(0.0, 1.0)) - viewPos; 
-    // 1 ピクセル左
     var ddx2: vec3f = viewPos - getViewPosFromTexCoord(input.uv + vec2f(-uniforms.texel_size.x, 0.), input.iuv + vec2f(-1.0, 0.0));
-    // 1 ピクセル下
     var ddy2: vec3f = viewPos - getViewPosFromTexCoord(input.uv + vec2f(0., -uniforms.texel_size.y), input.iuv + vec2f(0.0, -1.0));
 
     if (abs(ddx.z) > abs(ddx2.z)) {
-        ddx = ddx2; // z の差が小さいほうを選ぶ（エッジ対策）
+        ddx = ddx2; 
     }
     if (abs(ddy.z) > abs(ddy2.z)) {
         ddy = ddy2;
@@ -71,25 +64,20 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
     var specular: f32   = pow(max(0.0, dot(H, normal)), 250.);
     var diffuse: f32  = max(0.0, dot(lightDir, normal)) * 1.0;
 
-    var density = 1.0; // ひとまずこれで
+    var density = 1.0; 
     
     var thickness = textureLoad(thickness_texture, vec2u(input.iuv), 0).r;
-    if (thickness < 0.0) {
-        return vec4f(0.7, 0.7, 0.7, 1.);
-    }
     var diffuseColor = vec3f(0.085, 0.6375, 0.9);
     var transmittance: vec3f = exp(-density * thickness * (1.0 - diffuseColor)); 
-    var refractionColor: vec3f = vec3f(0.7, 0.7, 0.7) * transmittance;
+    var refractionColor: vec3f = bgColor * transmittance;
 
     let F0 = 0.02;
     var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 0.3);
 
     var reflectionDir: vec3f = reflect(rayDir, normal);
-    // なんで w=0 なのか
     var reflectionDirWorld: vec3f = (uniforms.inv_view_matrix * vec4f(reflectionDir, 0.0)).xyz;
     var reflectionColor: vec3f = textureSampleLevel(envmap_texture, texture_sampler, reflectionDirWorld, 0.).rgb; 
-    // var reflectionColor: vec3f = vec3f(0.8, 0.8, 0.8); 
-    var finalColor = 0.2 * specular + mix(refractionColor, reflectionColor, fresnel);
+    var finalColor = 1.0 * specular + mix(refractionColor, reflectionColor, fresnel);
 
     return vec4f(finalColor, 1.0);
 
