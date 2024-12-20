@@ -832,13 +832,6 @@ async function main() {
     }
   });
 
-  // デバイスロストの監視
-  let errorLog = document.getElementById('error-reason') as HTMLSpanElement;
-  device.lost.then(info => {
-    const reason = info.reason ? `reason: ${info.reason}` : 'unknown reason';
-    errorLog.textContent = reason;
-  });
-
   // ボタン押下の監視
   let form = document.getElementById('number-button') as HTMLFormElement;
   let pressed = false;
@@ -867,6 +860,14 @@ async function main() {
 
   const particlesData = init_dambreak(environment.numParticles, environment.boxSize);
   device.queue.writeBuffer(particlesBuffer, 0, particlesData)
+
+  // デバイスロストの監視
+  let errorLog = document.getElementById('error-reason') as HTMLSpanElement;
+  errorLog.textContent = "";
+  device.lost.then(info => {
+    const reason = info.reason ? `reason: ${info.reason}` : 'unknown reason';
+    errorLog.textContent = reason;
+  });
 
   async function frame() {
     const start = performance.now();

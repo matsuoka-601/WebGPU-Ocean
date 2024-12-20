@@ -36,10 +36,6 @@
 
       #debug-info {
         position: fixed; 
-        top: 0; 
-        right: 0; 
-        width: 300px; 
-        margin: 20px; 
       }
       #howto-container {
         position: fixed; 
@@ -72,7 +68,7 @@
         <label><input type="radio" name="options" value="20000" checked> Medium (20,000 particles)</label><br>
         <label><input type="radio" name="options" value="30000"> Large (30,000 particles)</label><br>
         <label><input type="radio" name="options" value="40000"> Very Large (40,000 particles)</label><br>
-        <label><input type="radio" name="options" value="100000"> Extreme (100,000 particles)</label><br>
+        <label style="display: none;"><input type="radio" name="options" value="100000"> Extreme (100,000 particles)</label><br>
       </form>
     </div>
     <div id="howto-container">
@@ -80,7 +76,7 @@
       <div> <b>Scroll</b> to zoom in and out </div>
     </div>
     <div id="debug-info">
-      <span id="error-reason"></span>
+      <span id="error-reason">loading now...(won't take longer than 10 seconds I guess)</span>
     </div>
     <canvas id="fluidCanvas"></canvas>
     <script type="module" src="main.ts"></script>
