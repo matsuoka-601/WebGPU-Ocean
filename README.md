@@ -3,7 +3,7 @@ A real-time 3d fluid simulation implemented in WebGPU. Works on your browsers wh
 
 [Try demo here!](https://webgpu-ocean.netlify.app/)
 
-![demo image](https://github.com/matsuoka-601/webgpu-ocean/blob/main/img/webgpu-ocean-demo.gif)
+![webgpu-ocean-demo](https://github.com/user-attachments/assets/c284d0a8-297e-44f8-a70b-abffbfd3e150)
 
 The following are the characteristics of the simulation.
 - The simulation is based on **Smoothed Particle Hydrodynamics (SPH)** described in [Particle-Based Fluid Simulation for Interactive Applications](https://matthias-research.github.io/pages/publications/sca03.pdf) by Müller et al.
@@ -16,3 +16,6 @@ The following are the characteristics of the simulation.
 To reduce the load on the browser, the maximum number of particles in the simulation is limited to 40,000 by default. But with a decent GPU, it's possible to simulate ~100,000 particles in real-time. To enable simulating 100,000 particles, make 5th button visible by editing the html using developer tool. 
 
 Below is the simulation of 100,000 particles. The simulation is run on a laptop with RTX 3060 Mobile.
+
+https://github.com/user-attachments/assets/03913ab7-a27f-4701-a5a6-95c977c1825a
+
