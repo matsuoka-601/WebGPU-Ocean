@@ -60,73 +60,7 @@ fn vs(
     return VertexOutput(out_position, uv, view_position, speed);
 }
 
-// HSVをRGBに変換する関数
-fn hsv_to_rgb(h: f32, s: f32, v: f32) -> vec3f {
-    let i = floor(h * 6.0); // i は整数部
-    let f = h * 6.0 - i; // f は小数部
-    let p = v * (1.0 - s);
-    let q = v * (1.0 - f * s);
-    let t = v * (1.0 - (1.0 - f) * s);
-
-    var r: f32 = 0.0;
-    var g: f32 = 0.0;
-    var b: f32 = 0.0;
-
-    // 色相に基づく条件分岐
-    if (i == 0.0) {
-        r = v;
-        g = t;
-        b = p;
-    } else if (i == 1.0) {
-        r = q;
-        g = v;
-        b = p;
-    } else if (i == 2.0) {
-        r = p;
-        g = v;
-        b = t;
-    } else if (i == 3.0) {
-        r = p;
-        g = q;
-        b = v;
-    } else if (i == 4.0) {
-        r = t;
-        g = p;
-        b = v;
-    } else if (i == 5.0) {
-        r = v;
-        g = p;
-        b = q;
-    }
-
-    return vec3f(r, g, b); // RGBA形式で返す
-}
-
-// speed に基づいて色を計算する関数
-fn get_color_by_speed(speed: f32, max_speed: f32) -> vec3f {
-    // speed を -max_speed から max_speed の範囲で正規化
-    let normalized_speed = clamp(abs(speed) / max_speed, 0.0, 1.0);
-    // 色相を計算
-    let hue = (1.0 - normalized_speed) * 0.7;
-    let saturation = 1.0;
-    let value = 1.0;
-
-    return hsv_to_rgb(hue, saturation, value);
-}
-
-fn value_to_color(value: f32, min: f32, max: f32) -> vec3<f32> {
-    // 入力値を0～1に正規化
-    let normalized = (value - min) / (max - min);
-    
-    // 色を虹色に変化させる
-    let r = normalized;
-    let g = (normalized - 0.5);
-    let b = (1.0 - normalized);
-    
-    return vec3<f32>(r, g, b); // RGB色を返す
-}
-
-fn value_to_color2(value: f32) -> vec3<f32> {
+fn value_to_color(value: f32) -> vec3<f32> {
     // let col0 = vec3f(29, 71, 158) / 256;
     let col0 = vec3f(0, 0.4, 0.8);
     let col1 = vec3f(35, 161, 165) / 256;
@@ -149,7 +83,6 @@ fn value_to_color2(value: f32) -> vec3<f32> {
         return mix(col3, col4, t);
     }
 
-    // return mix(col1, col2, value);
 }
 
 @fragment
@@ -169,17 +102,9 @@ fn fs(input: FragmentInput) -> FragmentOutput {
     var clip_space_pos: vec4f = uniforms.projection_matrix * real_view_pos;
     out.frag_depth = clip_space_pos.z / clip_space_pos.w;
 
-    var diffuse: f32 = max(0.0, dot(normal, normalize(vec3(1., 1.0, 1.0))));
-    // var color: vec3f = get_color_by_speed(input.speed, 2.);
-    // var color: vec3f = mix(vec3f(0, 0.2, 0.8), vec3f(0, 0.8, 1.0), input.speed / 2);
-    var color: vec3f = value_to_color2(input.speed / 1.5);
-    // var color: vec3f = vec3f(0.0, input.speed / 1.5, 1.);
-    // var color: vec3f = vec3f(0.0, input.speed / 1.5, 1.);
-    // var color: vec3f = value_to_color(input.speed, 0.0, 2.0);
+    var diffuse: f32 = max(0.0, dot(normal, normalize(vec3(1.0, 1.0, 1.0))));
+    var color: vec3f = value_to_color(input.speed / 1.5);
 
-    // ここ，負だな．やっぱり右手系なのか？
-    // out.frag_color = vec4(real_view_pos.z, 0., 0., 1.);
-    // out.frag_color = vec4(0.5 + 0.5 * normal, 1.);
     out.frag_color = vec4(color * diffuse, 1.);
     return out;
 }
