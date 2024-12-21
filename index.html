@@ -45,7 +45,20 @@
         margin: 20px; 
         font-size: small;
       }
+      #github-link {
+        position:fixed;
+        bottom: 0;
+        right: 0;
+      }
+      .github-icon {
+        position: absolute;
+        bottom: 10px;
+        right: 20px;
+        font-size: 40px;
+        color: black; 
+      }
     </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <script type="module" crossorigin src="/assets/index-CZt5n1qO.js"></script>
   </head>
   <body>
@@ -79,6 +92,12 @@
     <div id="debug-info">
       <span id="error-reason">loading now...(won't take longer than 10 seconds I guess)</span>
     </div>
+    <a href="https://github.com/matsuoka-601/webgpu-ocean" 
+      class="github-icon" 
+      target="_blank" 
+      rel="noopener noreferrer">
+        <i class="fab fa-github"></i>
+    </a>
     <canvas id="fluidCanvas"></canvas>
   </body>
 </html>
