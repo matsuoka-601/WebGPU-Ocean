@@ -795,7 +795,7 @@ async function main() {
     { MIN_DISTANCE: 1.8, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.1 }, // 20000
     { MIN_DISTANCE: 2.0, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.3 }, // 30000
     { MIN_DISTANCE: 2.3, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.7 }, // 40000
-    { MIN_DISTANCE: 3.0, MAX_DISTANCE: 6.0, INIT_DISTANCE: 4.0 }, // 100000
+    { MIN_DISTANCE: 2.8, MAX_DISTANCE: 6.0, INIT_DISTANCE: 3.5 }, // 100000
   ]
   let currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE; 
 
