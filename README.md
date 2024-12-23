@@ -10,7 +10,7 @@ The following are the characteristics of the simulation.
   - Compute shader is used for implementing SPH. 
 - **Screen-Space Rendering** described in [GDC 2010 slide](https://developer.download.nvidia.com/presentations/2010/gdc/Direct3D_Effects.pdf) is used for real-time rendering of the fluid.
   - Vertex/fragment shader is used for implementing Screen-Space Rendering.
-- For **fast neighborhood search** on GPU, an algorithm described in [FAST FIXED-RADIUS NEAREST NEIGHBORS: INTERACTIVE MILLION-PARTICLE FLUIDS](https://ramakarl.com/pdfs/2014_Hoetzlein_FastFixedRadius_Neighbors.pdf) is used. 
+- For **fast neighborhood search on GPU**, an algorithm described in [FAST FIXED-RADIUS NEAREST NEIGHBORS: INTERACTIVE MILLION-PARTICLE FLUIDS](https://ramakarl.com/pdfs/2014_Hoetzlein_FastFixedRadius_Neighbors.pdf) is used. 
 
 ## 100,000 particles mode
 To reduce the load on the browser, the maximum number of particles in the simulation is limited to 40,000 by default. But with a decent GPU, it's possible to simulate ~100,000 particles in real-time. To enable simulating 100,000 particles, make 5th button visible by editing the html using developer tool. 
