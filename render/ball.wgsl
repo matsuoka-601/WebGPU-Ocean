@@ -24,7 +24,8 @@ struct Uniforms {
 
 struct Particle {
     position: vec3f, 
-    velocity: vec3f, 
+    v: vec3f, 
+    C: mat3x3f, 
     force: vec3f, 
     density: f32, 
     nearDensity: f32, 
@@ -55,7 +56,7 @@ fn vs(
 
     let out_position = uniforms.projection_matrix * vec4f(view_position + corner, 1.0);
 
-    let speed = sqrt(dot(particles[instance_index].velocity, particles[instance_index].velocity));
+    let speed = sqrt(dot(particles[instance_index].v, particles[instance_index].v));
 
     return VertexOutput(out_position, uv, view_position, speed);
 }

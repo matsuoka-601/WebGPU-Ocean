@@ -1,8 +1,3 @@
-// shader の import には ?raw が必要
-import density from './compute/density.wgsl'
-import force from './compute/force.wgsl'
-import integrate from './compute/integrate.wgsl'
-
 import shader from './render/shader.wgsl'
 import show from './render/show.wgsl'
 import filter from './render/bilateral.wgsl'
@@ -12,44 +7,73 @@ import thickness from './render/thickness.wgsl'
 import gaussian from './render/gaussian.wgsl'
 import ball from './render/ball.wgsl'
 
-import gridClear from './compute/grid/gridClear.wgsl'
-import gridBuild from './compute/grid/gridBuild.wgsl'
-import reorderParticles from './compute/grid/reorderParticles.wgsl'
+import clearGrid from './mls-mpm/clearGrid.wgsl';
+import p2g_1 from './mls-mpm/p2g_1.wgsl';
+import p2g_2 from './mls-mpm/p2g_2.wgsl';
+import updateGrid from './mls-mpm/updateGrid.wgsl';
+import g2p from './mls-mpm/g2p.wgsl';
 
 import { PrefixSumKernel } from 'webgpu-radix-sort';
 import { mat4 } from 'wgpu-matrix'
 
 /// <reference types="@webgpu/types" />
 
-const kernelRadius = 0.07;
-const xHalfMax = 2.0;
-const yHalfMax = 2.0;
-const zHalfMax = 2.0;
-const numParticlesMax = 100000;
-const particleStructSize = 64;
-function init_dambreak(n: number, environment: { xHalf: number; yHalf: number; zHalf: number;}) {
-  let particles = new ArrayBuffer(particleStructSize * n);
-  var cnt = 0;
-  const DIST_FACTOR = 0.5
+const numParticlesMax = 400000;
+const particleStructSize = 112;
+const cellStructSize = 16;
+let numParticles = 0;
+function init_dambreak(grid_res: number) {
+  let particlesBuf = new ArrayBuffer(particleStructSize * numParticlesMax);
+  const spacing = 0.65;
 
-
-  for (var y = -environment.yHalf * 0.95; cnt < n; y += DIST_FACTOR * kernelRadius) {
-      for (var x = -0.95 * environment.xHalf; x < 0.95 * environment.xHalf && cnt < n; x += DIST_FACTOR * kernelRadius) {
-          for (var z = -0.95 * environment.zHalf; z < 0 * environment.zHalf && cnt < n; z += DIST_FACTOR * kernelRadius) {
-              let jitter = 0.0001 * Math.random();
-              const offset = 64 * cnt;
-              const particleViews = {
-                position: new Float32Array(particles, offset, 3),
-                velocity: new Float32Array(particles, offset + 16, 3),
-                force: new Float32Array(particles, offset + 32, 3),
-                density: new Float32Array(particles, offset + 44, 1),
-                nearDensity: new Float32Array(particles, offset + 48, 1),
-              };
-              particleViews.position.set([x + jitter, y, z]);
-              cnt++;
-          }
+  const box_y = 50;
+  const sy = box_y / 2;
+  for (let j = 3; j < box_y; j += spacing) {
+    for (let i = 3; i < grid_res - 3; i += spacing) {
+      for (let k = 3; k < grid_res / 3; k += spacing) {
+        const offset = particleStructSize * numParticles;
+        let jitter = 0.0001 * Math.random();
+        const particleViews = {
+          position: new Float32Array(particlesBuf, offset + 0, 3),
+          v: new Float32Array(particlesBuf, offset + 16, 3),
+          C: new Float32Array(particlesBuf, offset + 32, 12),
+          force: new Float32Array(particlesBuf, offset + 80, 3),
+          density: new Float32Array(particlesBuf, offset + 92, 1),
+          nearDensity: new Float32Array(particlesBuf, offset + 96, 1),
+        };
+        particleViews.position.set([i, j, k]);
+        // particleViews.position.set([0, 0, 0]);
+        numParticles++;
       }
+    }
   }
+
+  let particles = new ArrayBuffer(particleStructSize * numParticles);
+  const oldView = new Uint8Array(particlesBuf);
+  const newView = new Uint8Array(particles);
+  newView.set(oldView.subarray(0, newView.length));
+
+
+  // particles.set(particlesBuf.sub);
+
+  // for (var y = -environment.yHalf * 0.95; cnt < n; y += DIST_FACTOR * kernelRadius) {
+  //     for (var x = -0.95 * environment.xHalf; x < 0.95 * environment.xHalf && cnt < n; x += DIST_FACTOR * kernelRadius) {
+  //         for (var z = -0.95 * environment.zHalf; z < 0 * environment.zHalf && cnt < n; z += DIST_FACTOR * kernelRadius) {
+  //             let jitter = 0.0001 * Math.random();
+  //             const offset = 64 * cnt;
+  //             const particleViews = {
+  //               position: new Float32Array(particles, offset, 3),
+  //               velocity: new Float32Array(particles, offset + 16, 3),
+  //               force: new Float32Array(particles, offset + 32, 3),
+  //               density: new Float32Array(particles, offset + 44, 1),
+  //               nearDensity: new Float32Array(particles, offset + 48, 1),
+  //             };
+  //             particleViews.position.set([x + jitter, y, z]);
+  //             cnt++;
+  //         }
+  //     }
+  // }
+
   return particles;
 }
 
@@ -109,32 +133,8 @@ function computeViewPosFromUVDepth(
 
 function init_camera(canvas: HTMLCanvasElement, fov: number) {
   const aspect = canvas.clientWidth / canvas.clientHeight
-  const projection = mat4.perspective(fov, aspect, 0.1, 50)
-  const view = mat4.lookAt(
-    [0, 0, 5.5], // position
-    [0, 0, 0], // target
-    [0, 1, 0], // up
-  )
-  // mat4.rotateY(view, 1.0, view); // 初期値
-  const v = new Float32Array(4);
-  v[0] = 1.5;
-  v[1] = 1.0;
-  v[2] = 2.;
-  v[3] = 1.0;
-  const camera = mat4.multiply(view, v);
-  const depth = Math.abs(camera[2]);
-  const clip = mat4.multiply(projection, camera);
-  const ndc = [clip[0] / clip[3], clip[1] / clip[3], clip[2] / clip[3]];
-  console.log("camera: ", camera); // カメラ座標は，[1, 1, -0.2] である．
-  console.log("ndc: ", ndc);
-  // console.log(-projection[4 * 2 + 2] + projection[4 * 3 + 2] / depth);
-
-  // uv と depth から，カメラ座標（[0, 1, -0.2]）を復元できるか？
-  const uv = [(ndc[0] + 1) / 2., (1 - ndc[1]) / 2]
-  const inv_projection = mat4.inverse(projection);
-  const constructed_camera = computeViewPosFromUVDepth(uv, depth, projection, inv_projection);
-  console.log(constructed_camera);
-
+  const projection = mat4.perspective(fov, aspect, 0.1, 500)
+  const view = mat4.identity()
   return { projection, view } 
 }
 
@@ -154,7 +154,7 @@ function recalculateView(r: number, xRotate: number, yRotate: number, target: nu
   return view;
 }
 
-const radius = 0.04;
+const radius = 0.6; // どれくらいがいいかな
 const diameter = 2 * radius;
 
 async function main() {
@@ -172,33 +172,24 @@ async function main() {
   const filterModule = device.createShaderModule({ code: filter })
   const fluidModule = device.createShaderModule({ code: fluid })
   const ballModule = device.createShaderModule({ code: ball })
-
   const thicknessModule = device.createShaderModule({ code: thickness })
   const thicknessFilterModule = device.createShaderModule({ code: gaussian })
-  const densityModule = device.createShaderModule({ code: density })
-  const forceModule = device.createShaderModule({ code: force })
-  const integrateModule = device.createShaderModule({ code: integrate })
-  const gridBuildModule = device.createShaderModule({ code: gridBuild })
-  const gridClearModule = device.createShaderModule({ code: gridClear })
-  const reorderParticlesModule = device.createShaderModule({ code: reorderParticles })
+
+  const clearGridModule = device.createShaderModule({ code: clearGrid });
+  const p2g1Module = device.createShaderModule({ code: p2g_1 });
+  const p2g2Module = device.createShaderModule({ code: p2g_2 });
+  const updateGridModule = device.createShaderModule({ code: updateGrid });
+  const g2pModule = device.createShaderModule({ code: g2p });
 
   const constants = {
-    kernelRadius: kernelRadius, 
-    kernelRadiusPow2: Math.pow(kernelRadius, 2), 
-    kernelRadiusPow4: Math.pow(kernelRadius, 4), 
-    kernelRadiusPow5: Math.pow(kernelRadius, 5), 
-    kernelRadiusPow6: Math.pow(kernelRadius, 6), 
-    kernelRadiusPow9: Math.pow(kernelRadius, 9), 
-    stiffness: 20., 
-    nearStiffness : 1.,   
-    mass: 1.0, 
-    restDensity: 15000, 
-    viscosity: 100, 
-    dt: 0.006, 
-    xHalf: xHalfMax, 
-    yHalf: yHalfMax, 
-    zHalf: zHalfMax, 
+    stiffness: 3., 
+    restDensity: 6., 
+    dynamic_viscosity: 0.1, 
+    dt: 0.2, 
+    grid_res: 55, 
+    fixed_point_multiplier: 1e8, 
   }
+  const gridCount = constants.grid_res * constants.grid_res * constants.grid_res;
   // レンダリングパイプライン
   const circlePipeline = device.createRenderPipeline({
     label: 'circles pipeline', 
@@ -362,104 +353,59 @@ async function main() {
     },
   })
   // 計算のためのパイプライン
-  const cellSize = 1.0 * kernelRadius; 
-  const xLen = 2.0 * xHalfMax;
-  const yLen = 2.0 * yHalfMax;
-  const zLen = 2.0 * zHalfMax;
-  const sentinel = 4 * cellSize;
-  const xGrids = Math.ceil((xLen + sentinel) / cellSize);
-  const yGrids = Math.ceil((yLen + sentinel) / cellSize);
-  const zGrids = Math.ceil((zLen + sentinel) / cellSize);
-  const gridCount = xGrids * yGrids * zGrids;
-  const offset = sentinel / 2;
-  const sizeConstants = {
-    'xHalf' : xHalfMax, 
-    'yHalf' : yHalfMax, 
-    'zHalf' : zHalfMax, 
-    'gridCount': gridCount, 
-    'xGrids': xGrids, 
-    'yGrids': yGrids, 
-    'cellSize' : cellSize, 
-    'offset' : offset
-  }
-  const gridClearPipeline = device.createComputePipeline({
-    label: "grid clear pipeline", 
+  const clearGridPipeline = device.createComputePipeline({
+    label: "clear grid pipeline", 
     layout: 'auto', 
     compute: {
-      module: gridClearModule, 
+      module: clearGridModule, 
     }
   })
-  const gridBuildPipeline = device.createComputePipeline({
-    label: "grid build pipeline", 
+  const p2g1Pipeline = device.createComputePipeline({
+    label: "p2g 1 pipeline", 
     layout: 'auto', 
     compute: {
-      module: gridBuildModule, 
-      constants: sizeConstants, 
-    }
-  })
-  const reorderPipeline = device.createComputePipeline({
-    label: "reorder pipeline", 
-    layout: 'auto', 
-    compute: {
-      module: reorderParticlesModule, 
-      constants: sizeConstants, 
-    }
-  })
-  const densityPipeline = device.createComputePipeline({
-    label: "density pipeline", 
-    layout: 'auto', 
-    compute: {
-      module: densityModule, 
+      module: p2g1Module, 
       constants: {
-        'kernelRadius': constants.kernelRadius, 
-        'kernelRadiusPow2': constants.kernelRadiusPow2, 
-        'kernelRadiusPow5': constants.kernelRadiusPow5, 
-        'kernelRadiusPow6': constants.kernelRadiusPow6, 
-        'mass': constants.mass, 
-        'xHalf' : xHalfMax, 
-        'yHalf' : yHalfMax, 
-        'zHalf' : zHalfMax, 
-        'xGrids': xGrids, 
-        'yGrids': yGrids, 
-        'zGrids': zGrids, 
-        'cellSize' : cellSize, 
-        'offset' : offset
+        'grid_res': constants.grid_res, 
+        'fixed_point_multiplier': constants.fixed_point_multiplier
       }, 
     }
-  });
-  const forcePipeline = device.createComputePipeline({
-    label: "force pipeline", 
+  })
+  const p2g2Pipeline = device.createComputePipeline({
+    label: "p2g 2 pipeline", 
     layout: 'auto', 
     compute: {
-      module: forceModule, 
+      module: p2g2Module, 
       constants: {
-        'kernelRadius': constants.kernelRadius, 
-        'kernelRadiusPow2': constants.kernelRadiusPow2, 
-        'kernelRadiusPow5': constants.kernelRadiusPow5, 
-        'kernelRadiusPow6': constants.kernelRadiusPow6, 
-        'kernelRadiusPow9': constants.kernelRadiusPow9, 
-        'mass': constants.mass, 
+        'grid_res': constants.grid_res, 
+        'fixed_point_multiplier': constants.fixed_point_multiplier, 
         'stiffness': constants.stiffness, 
-        'nearStiffness': constants.nearStiffness, 
-        'viscosity': constants.viscosity, 
-        'restDensity': constants.restDensity, 
-        'xHalf' : xHalfMax, 
-        'yHalf' : yHalfMax, 
-        'zHalf' : zHalfMax, 
-        'xGrids': xGrids, 
-        'yGrids': yGrids, 
-        'zGrids': zGrids, 
-        'cellSize' : cellSize, 
-        'offset' : offset
+        'rest_density': constants.restDensity, 
+        'dynamic_viscosity': constants.dynamic_viscosity, 
+        'dt': constants.dt, 
+      }, 
+    }
+  })
+  const updateGridPipeline = device.createComputePipeline({
+    label: "update grid pipeline", 
+    layout: 'auto', 
+    compute: {
+      module: updateGridModule, 
+      constants: {
+        'fixed_point_multiplier': constants.fixed_point_multiplier, 
+        'dt': constants.dt, 
+        'grid_res': constants.grid_res  
       }, 
     }
   });
-  const integratePipeline = device.createComputePipeline({
-    label: "integrate pipeline", 
+  const g2pPipeline = device.createComputePipeline({
+    label: "g2p pipeline", 
     layout: 'auto', 
     compute: {
-      module: integrateModule, 
+      module: g2pModule, 
       constants: {
+        'grid_res': constants.grid_res, 
+        'fixed_point_multiplier': constants.fixed_point_multiplier, 
         'dt': constants.dt, 
       }, 
     }
@@ -597,19 +543,9 @@ async function main() {
     size: particleStructSize * numParticlesMax, 
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
-  const cellParticleCountBuffer = device.createBuffer({ // 累積和はここに保存
-    label: 'cell particle count buffer', 
-    size: 4 * (gridCount + 1),  // 1 要素余分にとっておく
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-  })
-  const targetParticlesBuffer = device.createBuffer({
-    label: 'target particles buffer', 
-    size: particleStructSize * numParticlesMax, 
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-  })
-  const particleCellOffsetBuffer = device.createBuffer({
-    label: 'particle cell offset buffer', 
-    size: 4 * numParticlesMax,
+  const cellsBuffer = device.createBuffer({ // 累積和はここに保存
+    label: 'cells buffer', 
+    size: cellStructSize * gridCount,  // 1 要素余分にとっておく
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
 
@@ -646,50 +582,37 @@ async function main() {
 
 
   // 計算の bindGroup
-  const gridClearBindGroup = device.createBindGroup({
-      layout: gridClearPipeline.getBindGroupLayout(0), 
+  const clearGridBindGroup = device.createBindGroup({
+      layout: clearGridPipeline.getBindGroupLayout(0), 
       entries: [
-        { binding: 0, resource: { buffer: cellParticleCountBuffer }}, // 累積和をクリア
+        { binding: 0, resource: { buffer: cellsBuffer }}, // 累積和をクリア
       ],  
   })
-  const gridBuildBindGroup = device.createBindGroup({
-    layout: gridBuildPipeline.getBindGroupLayout(0), 
-    entries: [
-      { binding: 0, resource: { buffer: cellParticleCountBuffer }}, 
-      { binding: 1, resource: { buffer: particleCellOffsetBuffer }}, 
-      { binding: 2, resource: { buffer: particlesBuffer }}, 
-    ],  
-  })
-  const reorderBindGroup = device.createBindGroup({
-    layout: reorderPipeline.getBindGroupLayout(0), 
+  const p2g1BindGroup = device.createBindGroup({
+    layout: p2g1Pipeline.getBindGroupLayout(0), 
     entries: [
       { binding: 0, resource: { buffer: particlesBuffer }}, 
-      { binding: 1, resource: { buffer: targetParticlesBuffer }}, 
-      { binding: 2, resource: { buffer: cellParticleCountBuffer }}, 
-      { binding: 3, resource: { buffer: particleCellOffsetBuffer }}, 
+      { binding: 1, resource: { buffer: cellsBuffer }}, 
+    ],  
+  })
+  const p2g2BindGroup = device.createBindGroup({
+    layout: p2g2Pipeline.getBindGroupLayout(0), 
+    entries: [
+      { binding: 0, resource: { buffer: particlesBuffer }}, 
+      { binding: 1, resource: { buffer: cellsBuffer }}, 
     ]
   })
-  const densityBindGroup = device.createBindGroup({
-    layout: densityPipeline.getBindGroupLayout(0),
+  const updateGridBindGroup = device.createBindGroup({
+    layout: updateGridPipeline.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: particlesBuffer }},
-      { binding: 1, resource: { buffer: targetParticlesBuffer }},
-      { binding: 2, resource: { buffer: cellParticleCountBuffer }},
+      { binding: 0, resource: { buffer: cellsBuffer }},
     ],
   })
-  const forceBindGroup = device.createBindGroup({
-    layout: forcePipeline.getBindGroupLayout(0),
+  const g2pBindGroup = device.createBindGroup({
+    layout: g2pPipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: particlesBuffer }},
-      { binding: 1, resource: { buffer: targetParticlesBuffer }},
-      { binding: 2, resource: { buffer: cellParticleCountBuffer }},
-    ],
-  })
-  const integrateBindGroup = device.createBindGroup({
-    layout: integratePipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: particlesBuffer }},
-      { binding: 1, resource: { buffer: realBoxSizeBuffer }},
+      { binding: 1, resource: { buffer: cellsBuffer }},
     ],
   })
 
@@ -791,13 +714,14 @@ async function main() {
 
   let distanceParamsIndex = 1; // 20000 
   const distanceParams = [
-    { MIN_DISTANCE: 1.3, MAX_DISTANCE: 3.0, INIT_DISTANCE: 1.6 }, // 10000
-    { MIN_DISTANCE: 1.8, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.1 }, // 20000
-    { MIN_DISTANCE: 2.0, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.3 }, // 30000
-    { MIN_DISTANCE: 2.3, MAX_DISTANCE: 3.0, INIT_DISTANCE: 2.7 }, // 40000
-    { MIN_DISTANCE: 2.8, MAX_DISTANCE: 6.0, INIT_DISTANCE: 3.5 }, // 100000
+    { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 10000
+    { MIN_DISTANCE: 50, MAX_DISTANCE: 100, INIT_DISTANCE: 90 }, // 10000
+    { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 30000
+    { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 40000
+    { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 100000
   ]
   let currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE; 
+  // let currentDistance = 30; 
 
   const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
 
@@ -809,7 +733,7 @@ async function main() {
   canvasElement.addEventListener("wheel", (event: WheelEvent) => {
     event.preventDefault();
     var scrollDelta = event.deltaY;
-    currentDistance += ((scrollDelta > 0) ? 1 : -1) * 0.05;
+    currentDistance += ((scrollDelta > 0) ? 1 : -1) * 0.5;
     const distanceParam = distanceParams[distanceParamsIndex];
     if (currentDistance < distanceParam.MIN_DISTANCE) currentDistance = distanceParam.MIN_DISTANCE;
     if (currentDistance > distanceParam.MAX_DISTANCE) currentDistance = distanceParam.MAX_DISTANCE;  
@@ -850,22 +774,23 @@ async function main() {
     }
   });
 
-  let boxSizeKey = ["10000", "20000", "30000", "40000", "100000"]
-  let boxSizes = [
-    { xHalf: 0.7, yHalf: 2.0, zHalf: 0.7 }, 
-    { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0 }, 
-    { xHalf: 1.2, yHalf: 2.0, zHalf: 1.2 }, 
-    { xHalf: 1.4, yHalf: 2.0, zHalf: 1.4 }, 
-    { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
-  ];
-  
-  let environment = {
-    boxSize: boxSizes[1], 
-    numParticles: 20000, 
-  } 
+  // // let boxSizeKey = ["10000", "20000", "30000", "40000", "100000"]
+  // let boxSizes = [
+  //   { xHalf: 0.7, yHalf: 2.0, zHalf: 0.7 }, 
+  //   { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0 }, 
+  //   { xHalf: 1.2, yHalf: 2.0, zHalf: 1.2 }, 
+  //   { xHalf: 1.4, yHalf: 2.0, zHalf: 1.4 }, 
+  //   { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
+  // ];
 
-  const particlesData = init_dambreak(environment.numParticles, environment.boxSize);
+  const particlesData = init_dambreak(constants.grid_res);
+
   device.queue.writeBuffer(particlesBuffer, 0, particlesData)
+  
+  // let environment = {
+  //   boxSize: boxSizes[1], 
+  //   numParticles: 20000, 
+  // } 
 
   // デバイスロストの監視
   let errorLog = document.getElementById('error-reason') as HTMLSpanElement;
@@ -875,33 +800,28 @@ async function main() {
     errorLog.textContent = reason;
   });
 
+  console.log(numParticles);
+
+  let ballFl = false;
   async function frame() {
     const start = performance.now();
 
-    if (pressed) { // 10000 フレームごとにリセット
-      console.log(pressedButton);
-      // やるべきこと
-      // - ボックスサイズの初期化
-      // - numParticles の変更
-      // - カメラの初期化
-      // - バーを 100 に戻す
-      // - 粒子のデータの初期化と書き込み
-      // - distanceParams の書き換え
-      distanceParamsIndex = boxSizeKey.indexOf(pressedButton);
-      environment.boxSize = boxSizes[distanceParamsIndex];
-      environment.numParticles = parseInt(pressedButton);
-      currentXtheta = Math.PI / 4;
-      currentYtheta = -Math.PI / 12;
-      const particlesData = init_dambreak(environment.numParticles, environment.boxSize);
-      device.queue.writeBuffer(particlesBuffer, 0, particlesData);
-      currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE;
-      let slider = document.getElementById("slider") as HTMLInputElement;
-      slider.value = "100";
+    // if (pressed) { 
+    //   distanceParamsIndex = boxSizeKey.indexOf(pressedButton);
+    //   environment.boxSize = boxSizes[distanceParamsIndex];
+    //   environment.numParticles = parseInt(pressedButton);
+    //   currentXtheta = Math.PI / 4;
+    //   currentYtheta = -Math.PI / 12;
+    //   const particlesData = init_dambreak(constants.grid_res);
+    //   device.queue.writeBuffer(particlesBuffer, 0, particlesData);
+    //   currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE;
+    //   let slider = document.getElementById("slider") as HTMLInputElement;
+    //   slider.value = "100";
 
-      console.log(distanceParams[distanceParamsIndex]);
+    //   console.log(distanceParams[distanceParamsIndex]);
       
-      pressed = false;
-    }
+    //   pressed = false;
+    // }
 
     const circlePassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [
@@ -1017,7 +937,7 @@ async function main() {
     // 行列の更新
     uniformsViews.size.set([diameter]);
     uniformsViews.projection_matrix.set(projection);
-    const view = recalculateView(currentDistance, currentYtheta, currentXtheta, [0., -environment.boxSize.yHalf, 0.]);
+    const view = recalculateView(currentDistance, currentYtheta, currentXtheta, [0., 0., 0.]);
     uniformsViews.view_matrix.set(view);
     fluidUniformsViews.view_matrix.set(view);
     mat4.inverse(view, inv_view);
@@ -1025,62 +945,48 @@ async function main() {
     device.queue.writeBuffer(uniformBuffer, 0, uniformsValues);
     device.queue.writeBuffer(fluidUniformBuffer, 0, fluidUniformsValues);
     // ボックスサイズの変更
-    const slider = document.getElementById("slider") as HTMLInputElement;
-    const sliderValue = document.getElementById("slider-value") as HTMLSpanElement;
-    const particle = document.getElementById("particle") as HTMLInputElement;
-    let curBoxWidthRatio = parseInt(slider.value) / 200 + 0.5;
-    const minClosingSpeed = -0.01;
-    const dVal = Math.max(curBoxWidthRatio - boxWidthRatio, minClosingSpeed);
-    boxWidthRatio += dVal;
-    sliderValue.textContent = curBoxWidthRatio.toFixed(2);
-    realBoxSizeViews.xHalf.set([environment.boxSize.xHalf]);
-    realBoxSizeViews.yHalf.set([environment.boxSize.yHalf]);
-    realBoxSizeViews.zHalf.set([environment.boxSize.zHalf * boxWidthRatio]);
-    device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues);
+    // const slider = document.getElementById("slider") as HTMLInputElement;
+    // const sliderValue = document.getElementById("slider-value") as HTMLSpanElement;
+    // const particle = document.getElementById("particle") as HTMLInputElement;
+    // let curBoxWidthRatio = parseInt(slider.value) / 200 + 0.5;
+    // const minClosingSpeed = -0.01;
+    // const dVal = Math.max(curBoxWidthRatio - boxWidthRatio, minClosingSpeed);
+    // boxWidthRatio += dVal;
+    // sliderValue.textContent = curBoxWidthRatio.toFixed(2);
+    // realBoxSizeViews.xHalf.set([environment.boxSize.xHalf]);
+    // realBoxSizeViews.yHalf.set([environment.boxSize.yHalf]);
+    // realBoxSizeViews.zHalf.set([environment.boxSize.zHalf * boxWidthRatio]);
+    // device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues);
 
     const commandEncoder = device.createCommandEncoder()
 
     // 計算のためのパス
     const computePass = commandEncoder.beginComputePass();
-    for (let i = 0; i < 2; i++) { // ここは 2 であるべき
-      computePass.setBindGroup(0, gridClearBindGroup);
-      computePass.setPipeline(gridClearPipeline);
-      computePass.dispatchWorkgroups(Math.ceil((gridCount + 1) / 64)) // これは gridCount だよな？
-      computePass.setBindGroup(0, gridBuildBindGroup);
-      computePass.setPipeline(gridBuildPipeline);
-      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64)) 
-
-      const prefixSumKernel = new PrefixSumKernel({
-        device: device, data: cellParticleCountBuffer, count: gridCount + 1
-      })
-      prefixSumKernel.dispatch(computePass);
-
-      computePass.setBindGroup(0, reorderBindGroup);
-      computePass.setPipeline(reorderPipeline)
-      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64))
-
-      computePass.setBindGroup(0, densityBindGroup)
-      computePass.setPipeline(densityPipeline)
-      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64))
-      // この reorder をしないと，ソートした密度がゼロのままになる 
-      computePass.setBindGroup(0, reorderBindGroup);
-      computePass.setPipeline(reorderPipeline)
-      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64))
-      computePass.setBindGroup(0, forceBindGroup)
-      computePass.setPipeline(forcePipeline)
-      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64)) 
-      computePass.setBindGroup(0, integrateBindGroup)
-      computePass.setPipeline(integratePipeline)
-      computePass.dispatchWorkgroups(Math.ceil(environment.numParticles / 64)) 
+    for (let i = 0; i < 2; i++) { 
+      computePass.setBindGroup(0, clearGridBindGroup);
+      computePass.setPipeline(clearGridPipeline);
+      computePass.dispatchWorkgroups(Math.ceil(gridCount / 64)) // これは gridCount だよな？
+      computePass.setBindGroup(0, p2g1BindGroup)
+      computePass.setPipeline(p2g1Pipeline)
+      computePass.dispatchWorkgroups(Math.ceil(numParticles / 64))
+      computePass.setBindGroup(0, p2g2BindGroup)
+      computePass.setPipeline(p2g2Pipeline)
+      computePass.dispatchWorkgroups(Math.ceil(numParticles / 64)) 
+      computePass.setBindGroup(0, updateGridBindGroup)
+      computePass.setPipeline(updateGridPipeline)
+      computePass.dispatchWorkgroups(Math.ceil(gridCount / 64)) 
+      computePass.setBindGroup(0, g2pBindGroup)
+      computePass.setPipeline(g2pPipeline)
+      computePass.dispatchWorkgroups(Math.ceil(numParticles / 64)) 
     }
     computePass.end()
 
     // レンダリングのためのパス
-    if (!particle.checked) {
+    if (!ballFl) {
       const circlePassEncoder = commandEncoder.beginRenderPass(circlePassDescriptor);
       circlePassEncoder.setBindGroup(0, circleBindGroup);
       circlePassEncoder.setPipeline(circlePipeline);
-      circlePassEncoder.draw(6, environment.numParticles);
+      circlePassEncoder.draw(6, numParticles);
       circlePassEncoder.end();
       for (var iter = 0; iter < 4; iter++) {
         const filterPassEncoderX = commandEncoder.beginRenderPass(filterPassDescriptors[0]);
@@ -1098,7 +1004,7 @@ async function main() {
       const thicknessPassEncoder = commandEncoder.beginRenderPass(thicknessPassDescriptor);
       thicknessPassEncoder.setBindGroup(0, thicknessBindGroup);
       thicknessPassEncoder.setPipeline(thicknessPipeline);
-      thicknessPassEncoder.draw(6, environment.numParticles);
+      thicknessPassEncoder.draw(6, numParticles);
       thicknessPassEncoder.end();
   
       for (var iter = 0; iter < 1; iter++) { // 多いか？
@@ -1123,10 +1029,15 @@ async function main() {
       const ballPassEncoder = commandEncoder.beginRenderPass(ballPassDescriptor);
       ballPassEncoder.setBindGroup(0, ballBindGroup);
       ballPassEncoder.setPipeline(ballPipeline);
-      ballPassEncoder.draw(6, environment.numParticles);
+      ballPassEncoder.draw(6, numParticles);
       ballPassEncoder.end();
     }
 
+    // const showPassEncoder = commandEncoder.beginRenderPass(showPassDescriptor);
+    // showPassEncoder.setBindGroup(0, showBindGroup);
+    // showPassEncoder.setPipeline(showPipeline);
+    // showPassEncoder.draw(6);
+    // showPassEncoder.end();
 
     device.queue.submit([commandEncoder.finish()])
     const end = performance.now();
