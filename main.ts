@@ -24,15 +24,14 @@ const cellStructSize = 16;
 let numParticles = 0;
 function init_dambreak(grid_res: number) {
   let particlesBuf = new ArrayBuffer(particleStructSize * numParticlesMax);
-  const spacing = 0.65;
+  const spacing = 0.6;
 
-  const box_y = 50;
+  const box_y = 35;
   const sy = box_y / 2;
   for (let j = 3; j < box_y; j += spacing) {
-    for (let i = 3; i < grid_res - 3; i += spacing) {
-      for (let k = 3; k < grid_res / 3; k += spacing) {
+    for (let i = 5; i < grid_res - 5; i += spacing) {
+      for (let k = 5; k < grid_res / 3; k += spacing) {
         const offset = particleStructSize * numParticles;
-        let jitter = 0.0001 * Math.random();
         const particleViews = {
           position: new Float32Array(particlesBuf, offset + 0, 3),
           v: new Float32Array(particlesBuf, offset + 16, 3),
@@ -41,7 +40,8 @@ function init_dambreak(grid_res: number) {
           density: new Float32Array(particlesBuf, offset + 92, 1),
           nearDensity: new Float32Array(particlesBuf, offset + 96, 1),
         };
-        particleViews.position.set([i, j, k]);
+        const jitter = 2.0 * Math.random();
+        particleViews.position.set([i + jitter, j + jitter, k + jitter]);
         // particleViews.position.set([0, 0, 0]);
         numParticles++;
       }
@@ -183,11 +183,11 @@ async function main() {
 
   const constants = {
     stiffness: 3., 
-    restDensity: 6., 
-    dynamic_viscosity: 0.1, 
+    restDensity: 4., 
+    dynamic_viscosity: 0.03, 
     dt: 0.2, 
     grid_res: 55, 
-    fixed_point_multiplier: 1e8, 
+    fixed_point_multiplier: 1e7, 
   }
   const gridCount = constants.grid_res * constants.grid_res * constants.grid_res;
   // レンダリングパイプライン
@@ -705,7 +705,7 @@ async function main() {
   let isDragging = false;
   let prevX = 0;
   let prevY = 0;
-  let currentXtheta = Math.PI / 4;
+  let currentXtheta = -Math.PI / 2;
   let currentYtheta = -Math.PI / 12;
   const SENSITIVITY = 0.005;
   const MIN_YTHETA = -0.99 * Math.PI / 2.;
@@ -715,7 +715,7 @@ async function main() {
   let distanceParamsIndex = 1; // 20000 
   const distanceParams = [
     { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 10000
-    { MIN_DISTANCE: 50, MAX_DISTANCE: 100, INIT_DISTANCE: 90 }, // 10000
+    { MIN_DISTANCE: 50, MAX_DISTANCE: 100, INIT_DISTANCE: 50 }, // 10000
     { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 30000
     { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 40000
     { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 100000
@@ -937,7 +937,9 @@ async function main() {
     // 行列の更新
     uniformsViews.size.set([diameter]);
     uniformsViews.projection_matrix.set(projection);
-    const view = recalculateView(currentDistance, currentYtheta, currentXtheta, [0., 0., 0.]);
+    const view = recalculateView(currentDistance, currentYtheta, currentXtheta,
+         [constants.grid_res / 2., constants.grid_res / 4, constants.grid_res / 2.]
+      );
     uniformsViews.view_matrix.set(view);
     fluidUniformsViews.view_matrix.set(view);
     mat4.inverse(view, inv_view);
@@ -988,7 +990,7 @@ async function main() {
       circlePassEncoder.setPipeline(circlePipeline);
       circlePassEncoder.draw(6, numParticles);
       circlePassEncoder.end();
-      for (var iter = 0; iter < 4; iter++) {
+      for (var iter = 0; iter < 5; iter++) {
         const filterPassEncoderX = commandEncoder.beginRenderPass(filterPassDescriptors[0]);
         filterPassEncoderX.setBindGroup(0, filterBindGroups[0]);
         filterPassEncoderX.setPipeline(filterPipeline);
