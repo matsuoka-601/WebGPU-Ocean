@@ -76,14 +76,16 @@ fn g2p(@builtin(global_invocation_id) id: vec3<u32>) {
             clamp(particles[id.x].position.z, 1., f32(grid_res) - 2.)
         );
 
-        let x_n: vec3f = particles[id.x].position + particles[id.x].v;
+        let k = 2.0;
+        let wall_stiffness = 0.2;
+        let x_n: vec3f = particles[id.x].position + particles[id.x].v * dt * k;
         let wall_min: f32 = 3.;
         let wall_max: f32 = f32(grid_res) - 4.;
-        if (x_n.x < wall_min) { particles[id.x].v.x += wall_min - x_n.x; }
-        if (x_n.x > wall_max) { particles[id.x].v.x += wall_max - x_n.x; }
-        if (x_n.y < wall_min) { particles[id.x].v.y += wall_min - x_n.y; }
-        if (x_n.y > wall_max) { particles[id.x].v.y += wall_max - x_n.y; }
-        if (x_n.z < wall_min) { particles[id.x].v.z += wall_min - x_n.z; }
-        if (x_n.z > wall_max) { particles[id.x].v.z += wall_max - x_n.z; }
+        if (x_n.x < wall_min) { particles[id.x].v.x += wall_stiffness * (wall_min - x_n.x); }
+        if (x_n.x > wall_max) { particles[id.x].v.x += wall_stiffness * (wall_max - x_n.x); }
+        if (x_n.y < wall_min) { particles[id.x].v.y += wall_stiffness * (wall_min - x_n.y); }
+        if (x_n.y > wall_max) { particles[id.x].v.y += wall_stiffness * (wall_max - x_n.y); }
+        if (x_n.z < wall_min) { particles[id.x].v.z += wall_stiffness * (wall_min - x_n.z); }
+        if (x_n.z > wall_max) { particles[id.x].v.z += wall_stiffness * (wall_max - x_n.z); }
     }
 }
