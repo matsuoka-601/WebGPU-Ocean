@@ -162,7 +162,7 @@ async function main() {
   const g2pModule = device.createShaderModule({ code: g2p });
 
   const constants = {
-    stiffness: 6., 
+    stiffness: 3., 
     restDensity: 4., 
     dynamic_viscosity: 0.03, 
     dt: 0.20, 
