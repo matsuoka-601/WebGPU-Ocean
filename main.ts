@@ -27,9 +27,9 @@ const max_z_grids = 64;
 let numParticles = 0;
 function init_dambreak(init_box_size: number[]) {
   let particlesBuf = new ArrayBuffer(particleStructSize * numParticlesMax);
-  const spacing = 0.6;
+  const spacing = 0.65;
 
-  for (let j = 3; j < init_box_size[1] * 0.4; j += spacing) {
+  for (let j = 3; j < init_box_size[1] * 0.6; j += spacing) {
     for (let i = 3; i < init_box_size[0] - 5; i += spacing) {
       for (let k = 3; k < init_box_size[2] / 2; k += spacing) {
         const offset = particleStructSize * numParticles;
@@ -165,7 +165,7 @@ async function main() {
     stiffness: 6., 
     restDensity: 4., 
     dynamic_viscosity: 0.03, 
-    dt: 0.2, 
+    dt: 0.20, 
     fixed_point_multiplier: 1e7, 
   }
   const maxGridCount = max_x_grids * max_y_grids * max_z_grids;
@@ -215,7 +215,7 @@ async function main() {
     }
   })
 
-  const fov = 90 * Math.PI / 180;
+  const fov = 45 * Math.PI / 180;
   const { projection, view } = init_camera(canvas, fov);
 
 
@@ -697,7 +697,7 @@ async function main() {
   let distanceParamsIndex = 1; // 20000 
   const distanceParams = [
     { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 10000
-    { MIN_DISTANCE: 50, MAX_DISTANCE: 100, INIT_DISTANCE: 50 }, // 10000
+    { MIN_DISTANCE: 60, MAX_DISTANCE: 100, INIT_DISTANCE: 80 }, // 10000
     { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 30000
     { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 40000
     { MIN_DISTANCE: 100, MAX_DISTANCE: 100, INIT_DISTANCE: 100 }, // 100000
@@ -765,7 +765,7 @@ async function main() {
   //   { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
   // ];
 
-  let init_box_size = [40, 64, 72];
+  let init_box_size = [50, 50, 50];
   let real_box_size = [...init_box_size];
   const particlesData = init_dambreak(init_box_size);
 
@@ -930,7 +930,7 @@ async function main() {
     fluidUniformsViews.view_matrix.set(view);
     mat4.inverse(view, inv_view);
     fluidUniformsViews.inv_view_matrix.set(inv_view); // Don't forget!!!!
-    real_box_size[2] = init_box_size[2] * (0.25 * (Math.cos(4 * t) + 1.) + 0.5);
+    real_box_size[2] = init_box_size[2] * (0.25 * (Math.cos(0 * t) + 1.) + 0.5);
     realBoxSizeViews.set(real_box_size);
     initBoxSizeViews.set(init_box_size);
     device.queue.writeBuffer(uniformBuffer, 0, uniformsValues);
