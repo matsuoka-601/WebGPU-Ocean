@@ -21,16 +21,17 @@ import { mat4 } from 'wgpu-matrix'
 const numParticlesMax = 400000;
 const particleStructSize = 112;
 const cellStructSize = 16;
+const max_x_grids = 64;
+const max_y_grids = 64;
+const max_z_grids = 64;
 let numParticles = 0;
-function init_dambreak(grid_res: number) {
+function init_dambreak(init_box_size: number[]) {
   let particlesBuf = new ArrayBuffer(particleStructSize * numParticlesMax);
   const spacing = 0.6;
 
-  const box_y = 35;
-  const sy = box_y / 2;
-  for (let j = 3; j < box_y; j += spacing) {
-    for (let i = 5; i < grid_res - 5; i += spacing) {
-      for (let k = 5; k < grid_res / 3; k += spacing) {
+  for (let j = 3; j < init_box_size[1] * 0.4; j += spacing) {
+    for (let i = 3; i < init_box_size[0] - 5; i += spacing) {
+      for (let k = 3; k < init_box_size[2] / 2; k += spacing) {
         const offset = particleStructSize * numParticles;
         const particleViews = {
           position: new Float32Array(particlesBuf, offset + 0, 3),
@@ -42,7 +43,6 @@ function init_dambreak(grid_res: number) {
         };
         const jitter = 2.0 * Math.random();
         particleViews.position.set([i + jitter, j + jitter, k + jitter]);
-        // particleViews.position.set([0, 0, 0]);
         numParticles++;
       }
     }
@@ -53,26 +53,6 @@ function init_dambreak(grid_res: number) {
   const newView = new Uint8Array(particles);
   newView.set(oldView.subarray(0, newView.length));
 
-
-  // particles.set(particlesBuf.sub);
-
-  // for (var y = -environment.yHalf * 0.95; cnt < n; y += DIST_FACTOR * kernelRadius) {
-  //     for (var x = -0.95 * environment.xHalf; x < 0.95 * environment.xHalf && cnt < n; x += DIST_FACTOR * kernelRadius) {
-  //         for (var z = -0.95 * environment.zHalf; z < 0 * environment.zHalf && cnt < n; z += DIST_FACTOR * kernelRadius) {
-  //             let jitter = 0.0001 * Math.random();
-  //             const offset = 64 * cnt;
-  //             const particleViews = {
-  //               position: new Float32Array(particles, offset, 3),
-  //               velocity: new Float32Array(particles, offset + 16, 3),
-  //               force: new Float32Array(particles, offset + 32, 3),
-  //               density: new Float32Array(particles, offset + 44, 1),
-  //               nearDensity: new Float32Array(particles, offset + 48, 1),
-  //             };
-  //             particleViews.position.set([x + jitter, y, z]);
-  //             cnt++;
-  //         }
-  //     }@
-  // }
 
   return particles;
 }
@@ -182,14 +162,13 @@ async function main() {
   const g2pModule = device.createShaderModule({ code: g2p });
 
   const constants = {
-    stiffness: 3., 
+    stiffness: 6., 
     restDensity: 4., 
     dynamic_viscosity: 0.03, 
     dt: 0.2, 
-    grid_res: 55, 
     fixed_point_multiplier: 1e7, 
   }
-  const gridCount = constants.grid_res * constants.grid_res * constants.grid_res;
+  const maxGridCount = max_x_grids * max_y_grids * max_z_grids;
   // レンダリングパイプライン
   const circlePipeline = device.createRenderPipeline({
     label: 'circles pipeline', 
@@ -366,7 +345,6 @@ async function main() {
     compute: {
       module: p2g1Module, 
       constants: {
-        'grid_res': constants.grid_res, 
         'fixed_point_multiplier': constants.fixed_point_multiplier
       }, 
     }
@@ -377,7 +355,6 @@ async function main() {
     compute: {
       module: p2g2Module, 
       constants: {
-        'grid_res': constants.grid_res, 
         'fixed_point_multiplier': constants.fixed_point_multiplier, 
         'stiffness': constants.stiffness, 
         'rest_density': constants.restDensity, 
@@ -394,7 +371,6 @@ async function main() {
       constants: {
         'fixed_point_multiplier': constants.fixed_point_multiplier, 
         'dt': constants.dt, 
-        'grid_res': constants.grid_res  
       }, 
     }
   });
@@ -404,7 +380,6 @@ async function main() {
     compute: {
       module: g2pModule, 
       constants: {
-        'grid_res': constants.grid_res, 
         'fixed_point_multiplier': constants.fixed_point_multiplier, 
         'dt': constants.dt, 
       }, 
@@ -530,12 +505,9 @@ async function main() {
   fluidUniformsViews.inv_view_matrix.set(inv_view);
 
   const realBoxSizeValues = new ArrayBuffer(12);
-  const realBoxSizeViews = {
-    xHalf: new Float32Array(realBoxSizeValues, 0, 1),
-    yHalf: new Float32Array(realBoxSizeValues, 4, 1),
-    zHalf: new Float32Array(realBoxSizeValues, 8, 1),
-  };
-
+  const realBoxSizeViews = new Float32Array(realBoxSizeValues);
+  const initBoxSizeValues = new ArrayBuffer(12);
+  const initBoxSizeViews = new Float32Array(initBoxSizeValues);
 
   // storage buffer を作る
   const particlesBuffer = device.createBuffer({
@@ -543,9 +515,9 @@ async function main() {
     size: particleStructSize * numParticlesMax, 
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
-  const cellsBuffer = device.createBuffer({ // 累積和はここに保存
+  const cellsBuffer = device.createBuffer({ 
     label: 'cells buffer', 
-    size: cellStructSize * gridCount,  // 1 要素余分にとっておく
+    size: cellStructSize * maxGridCount,  
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
 
@@ -575,17 +547,21 @@ async function main() {
     size: realBoxSizeValues.byteLength, 
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
+  const initBoxSizeBuffer = device.createBuffer({
+    label: 'init box size buffer', 
+    size: initBoxSizeValues.byteLength, 
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  })
   device.queue.writeBuffer(filterXUniformBuffer, 0, filterXUniformsValues);
   device.queue.writeBuffer(filterYUniformBuffer, 0, filterYUniformsValues);
   device.queue.writeBuffer(fluidUniformBuffer, 0, fluidUniformsValues);
-  device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues);
 
 
   // 計算の bindGroup
   const clearGridBindGroup = device.createBindGroup({
       layout: clearGridPipeline.getBindGroupLayout(0), 
       entries: [
-        { binding: 0, resource: { buffer: cellsBuffer }}, // 累積和をクリア
+        { binding: 0, resource: { buffer: cellsBuffer }}, 
       ],  
   })
   const p2g1BindGroup = device.createBindGroup({
@@ -593,6 +569,7 @@ async function main() {
     entries: [
       { binding: 0, resource: { buffer: particlesBuffer }}, 
       { binding: 1, resource: { buffer: cellsBuffer }}, 
+      { binding: 2, resource: { buffer: initBoxSizeBuffer }}, 
     ],  
   })
   const p2g2BindGroup = device.createBindGroup({
@@ -600,12 +577,15 @@ async function main() {
     entries: [
       { binding: 0, resource: { buffer: particlesBuffer }}, 
       { binding: 1, resource: { buffer: cellsBuffer }}, 
+      { binding: 2, resource: { buffer: initBoxSizeBuffer }}, 
     ]
   })
   const updateGridBindGroup = device.createBindGroup({
     layout: updateGridPipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: cellsBuffer }},
+      { binding: 1, resource: { buffer: realBoxSizeBuffer }},
+      { binding: 2, resource: { buffer: initBoxSizeBuffer }},
     ],
   })
   const g2pBindGroup = device.createBindGroup({
@@ -613,6 +593,8 @@ async function main() {
     entries: [
       { binding: 0, resource: { buffer: particlesBuffer }},
       { binding: 1, resource: { buffer: cellsBuffer }},
+      { binding: 2, resource: { buffer: realBoxSizeBuffer }},
+      { binding: 3, resource: { buffer: initBoxSizeBuffer }},
     ],
   })
 
@@ -783,7 +765,9 @@ async function main() {
   //   { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
   // ];
 
-  const particlesData = init_dambreak(constants.grid_res);
+  let init_box_size = [40, 64, 72];
+  let real_box_size = [...init_box_size];
+  const particlesData = init_dambreak(init_box_size);
 
   device.queue.writeBuffer(particlesBuffer, 0, particlesData)
   
@@ -803,7 +787,9 @@ async function main() {
   console.log(numParticles);
 
   let ballFl = false;
+  let t = 0;
   async function frame() {
+    t += 0.01;
     const start = performance.now();
 
     // if (pressed) { 
@@ -938,14 +924,23 @@ async function main() {
     uniformsViews.size.set([diameter]);
     uniformsViews.projection_matrix.set(projection);
     const view = recalculateView(currentDistance, currentYtheta, currentXtheta,
-         [constants.grid_res / 2., constants.grid_res / 4, constants.grid_res / 2.]
+         [init_box_size[0] / 2., init_box_size[1] / 4, init_box_size[2] / 2.]
       );
     uniformsViews.view_matrix.set(view);
     fluidUniformsViews.view_matrix.set(view);
     mat4.inverse(view, inv_view);
     fluidUniformsViews.inv_view_matrix.set(inv_view); // Don't forget!!!!
+    real_box_size[2] = init_box_size[2] * (0.25 * (Math.cos(4 * t) + 1.) + 0.5);
+    realBoxSizeViews.set(real_box_size);
+    initBoxSizeViews.set(init_box_size);
     device.queue.writeBuffer(uniformBuffer, 0, uniformsValues);
     device.queue.writeBuffer(fluidUniformBuffer, 0, fluidUniformsValues);
+    device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues);
+    device.queue.writeBuffer(initBoxSizeBuffer, 0, initBoxSizeValues);
+    const gridCount = Math.ceil(init_box_size[0]) * Math.ceil(init_box_size[1]) * Math.ceil(init_box_size[2]);
+    if (gridCount > maxGridCount) {
+      throw new Error("gridCount is bigger than maxGridCount");
+    }
     // ボックスサイズの変更
     // const slider = document.getElementById("slider") as HTMLInputElement;
     // const sliderValue = document.getElementById("slider-value") as HTMLSpanElement;

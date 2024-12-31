@@ -13,7 +13,6 @@ struct Cell {
     mass: i32, 
 }
 
-override grid_res: i32;
 override fixed_point_multiplier: f32; 
 override stiffness: f32;
 override rest_density: f32;
@@ -29,6 +28,7 @@ fn decodeFixedPoint(fixed_point: i32) -> f32 {
 
 @group(0) @binding(0) var<storage, read> particles: array<Particle>;
 @group(0) @binding(1) var<storage, read_write> cells: array<Cell>;
+@group(0) @binding(2) var<uniform> init_box_size: vec3f;
 
 @compute @workgroup_size(64)
 fn p2g_2(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -52,8 +52,10 @@ fn p2g_2(@builtin(global_invocation_id) id: vec3<u32>) {
                             cell_idx.y + f32(gy) - 1.,
                             cell_idx.z + f32(gz) - 1.  
                         );
-
-                    let cell_index: i32 = i32(cell_x.x) * grid_res * grid_res + i32(cell_x.y) * grid_res + i32(cell_x.z);
+                    let cell_index: i32 = 
+                        i32(cell_x.x) * i32(init_box_size.y) * i32(init_box_size.z) + 
+                        i32(cell_x.y) * i32(init_box_size.z) + 
+                        i32(cell_x.z);
                     density += decodeFixedPoint(cells[cell_index].mass) * weight;
                 }
             }
@@ -61,7 +63,7 @@ fn p2g_2(@builtin(global_invocation_id) id: vec3<u32>) {
 
         let volume: f32 = 1.0 / density; // particle.mass = 1.0;
 
-        let pressure: f32 = max(0., stiffness * (pow(density / rest_density, 5.) - 1));
+        let pressure: f32 = max(-0.0, stiffness * (pow(density / rest_density, 5.) - 1));
 
         var stress: mat3x3f = mat3x3f(-pressure, 0, 0, 0, -pressure, 0, 0, 0, -pressure);
         let dudv: mat3x3f = particle.C;
@@ -80,7 +82,10 @@ fn p2g_2(@builtin(global_invocation_id) id: vec3<u32>) {
                             cell_idx.z + f32(gz) - 1.  
                         );
                     let cell_dist = (cell_x + 0.5f) - particle.position;
-                    let cell_index: i32 = i32(cell_x.x) * grid_res * grid_res + i32(cell_x.y) * grid_res + i32(cell_x.z);
+                    let cell_index: i32 = 
+                        i32(cell_x.x) * i32(init_box_size.y) * i32(init_box_size.z) + 
+                        i32(cell_x.y) * i32(init_box_size.z) + 
+                        i32(cell_x.z);
                     let momentum: vec3f = eq_16_term0 * weight * cell_dist;
                     atomicAdd(&cells[cell_index].vx, encodeFixedPoint(momentum.x));
                     atomicAdd(&cells[cell_index].vy, encodeFixedPoint(momentum.y));

@@ -13,12 +13,13 @@ struct Cell {
     mass: i32, 
 }
 
-override grid_res: i32;
 override fixed_point_multiplier: f32; 
 override dt: f32; 
 
 @group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
 @group(0) @binding(1) var<storage, read> cells: array<Cell>;
+@group(0) @binding(2) var<uniform> real_box_size: vec3f;
+@group(0) @binding(3) var<uniform> init_box_size: vec3f;
 
 fn decodeFixedPoint(fixed_point: i32) -> f32 {
 	return f32(fixed_point) / fixed_point_multiplier;
@@ -49,7 +50,10 @@ fn g2p(@builtin(global_invocation_id) id: vec3<u32>) {
                         cell_idx.z + f32(gz) - 1.  
                     );
                     let cell_dist: vec3f = (cell_x + 0.5f) - particle.position;
-                    let cell_index: i32 = i32(cell_x.x) * grid_res * grid_res + i32(cell_x.y) * grid_res + i32(cell_x.z);
+                    let cell_index: i32 = 
+                        i32(cell_x.x) * i32(init_box_size.y) * i32(init_box_size.z) + 
+                        i32(cell_x.y) * i32(init_box_size.z) + 
+                        i32(cell_x.z);
                     let weighted_velocity: vec3f = vec3f(
                         decodeFixedPoint(cells[cell_index].vx), 
                         decodeFixedPoint(cells[cell_index].vy), 
@@ -71,21 +75,21 @@ fn g2p(@builtin(global_invocation_id) id: vec3<u32>) {
         particles[id.x].C = B * 4.0f;
         particles[id.x].position += particles[id.x].v * dt;
         particles[id.x].position = vec3f(
-            clamp(particles[id.x].position.x, 1., f32(grid_res) - 2.), 
-            clamp(particles[id.x].position.y, 1., f32(grid_res) - 2.), 
-            clamp(particles[id.x].position.z, 1., f32(grid_res) - 2.)
+            clamp(particles[id.x].position.x, 1., real_box_size.x - 2.), 
+            clamp(particles[id.x].position.y, 1., real_box_size.y - 2.), 
+            clamp(particles[id.x].position.z, 1., real_box_size.z - 2.)
         );
-
+        
         let k = 2.0;
         let wall_stiffness = 0.2;
         let x_n: vec3f = particles[id.x].position + particles[id.x].v * dt * k;
-        let wall_min: f32 = 3.;
-        let wall_max: f32 = f32(grid_res) - 4.;
-        if (x_n.x < wall_min) { particles[id.x].v.x += wall_stiffness * (wall_min - x_n.x); }
-        if (x_n.x > wall_max) { particles[id.x].v.x += wall_stiffness * (wall_max - x_n.x); }
-        if (x_n.y < wall_min) { particles[id.x].v.y += wall_stiffness * (wall_min - x_n.y); }
-        if (x_n.y > wall_max) { particles[id.x].v.y += wall_stiffness * (wall_max - x_n.y); }
-        if (x_n.z < wall_min) { particles[id.x].v.z += wall_stiffness * (wall_min - x_n.z); }
-        if (x_n.z > wall_max) { particles[id.x].v.z += wall_stiffness * (wall_max - x_n.z); }
+        let wall_min: vec3f = vec3f(3.);
+        let wall_max: vec3f = real_box_size - 4.;
+        if (x_n.x < wall_min.x) { particles[id.x].v.x += wall_stiffness * (wall_min.x - x_n.x); }
+        if (x_n.x > wall_max.x) { particles[id.x].v.x += wall_stiffness * (wall_max.x - x_n.x); }
+        if (x_n.y < wall_min.y) { particles[id.x].v.y += wall_stiffness * (wall_min.y - x_n.y); }
+        if (x_n.y > wall_max.y) { particles[id.x].v.y += wall_stiffness * (wall_max.y - x_n.y); }
+        if (x_n.z < wall_min.z) { particles[id.x].v.z += wall_stiffness * (wall_min.z - x_n.z); }
+        if (x_n.z > wall_max.z) { particles[id.x].v.z += wall_stiffness * (wall_max.z - x_n.z); }
     }
 }

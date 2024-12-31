@@ -13,7 +13,6 @@ struct Cell {
     mass: atomic<i32>, 
 }
 
-override grid_res: i32;
 override fixed_point_multiplier: f32; 
 
 fn encodeFixedPoint(floating_point: f32) -> i32 {
@@ -23,6 +22,7 @@ fn encodeFixedPoint(floating_point: f32) -> i32 {
 
 @group(0) @binding(0) var<storage, read> particles: array<Particle>;
 @group(0) @binding(1) var<storage, read_write> cells: array<Cell>;
+@group(0) @binding(2) var<uniform> init_box_size: vec3f;
 
 @compute @workgroup_size(64)
 fn p2g_1(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -53,7 +53,10 @@ fn p2g_1(@builtin(global_invocation_id) id: vec3<u32>) {
 
                     let mass_contrib: f32 = weight * 1.0; // assuming particle.mass = 1.0
                     let vel_contrib: vec3f = mass_contrib * (particle.v + Q);
-                    let cell_index: i32 = i32(cell_x.x) * grid_res * grid_res + i32(cell_x.y) * grid_res + i32(cell_x.z);
+                    let cell_index: i32 = 
+                        i32(cell_x.x) * i32(init_box_size.y) * i32(init_box_size.z) + 
+                        i32(cell_x.y) * i32(init_box_size.z) + 
+                        i32(cell_x.z);
                     atomicAdd(&cells[cell_index].mass, encodeFixedPoint(mass_contrib));
                     atomicAdd(&cells[cell_index].vx, encodeFixedPoint(vel_contrib.x));
                     atomicAdd(&cells[cell_index].vy, encodeFixedPoint(vel_contrib.y));
