@@ -80,8 +80,8 @@ fn g2p(@builtin(global_invocation_id) id: vec3<u32>) {
             clamp(particles[id.x].position.z, 1., real_box_size.z - 2.)
         );
         
-        let k = 2.0;
-        let wall_stiffness = 0.2;
+        let k = 3.0;
+        let wall_stiffness = 0.3;
         let x_n: vec3f = particles[id.x].position + particles[id.x].v * dt * k;
         let wall_min: vec3f = vec3f(3.);
         let wall_max: vec3f = real_box_size - 4.;

@@ -27,10 +27,10 @@ const max_z_grids = 64;
 let numParticles = 0;
 function init_dambreak(init_box_size: number[]) {
   let particlesBuf = new ArrayBuffer(particleStructSize * numParticlesMax);
-  const spacing = 0.65;
+  const spacing = 0.70;
 
-  for (let j = 3; j < init_box_size[1] * 0.6; j += spacing) {
-    for (let i = 3; i < init_box_size[0] - 5; i += spacing) {
+  for (let j = 0; j < init_box_size[1] * 0.40; j += spacing) {
+    for (let i = 3; i < init_box_size[0] - 4; i += spacing) {
       for (let k = 3; k < init_box_size[2] / 2; k += spacing) {
         const offset = particleStructSize * numParticles;
         const particleViews = {
@@ -96,19 +96,6 @@ async function init() {
   })
 
   return { canvas, device, presentationFormat, context }
-}
-
-function computeViewPosFromUVDepth(
-  uv: number[], 
-  depth: number,
-  projection: Float32Array, 
-  inv_projection: Float32Array, 
-) {
-  var ndc = [uv[0] * 2 - 1, 1 - uv[1] * 2, 0, 1];
-  ndc[2] = -projection[4 * 2 + 2] + projection[4 * 3 + 2] / depth;
-  var eye_pos = mat4.multiply(inv_projection, ndc);
-  var w = eye_pos[3];
-  return [eye_pos[0] / w, eye_pos[1] / w, eye_pos[2] / w];
 }
 
 function init_camera(canvas: HTMLCanvasElement, fov: number) {
@@ -224,6 +211,7 @@ async function main() {
     'screenHeight': canvas.height, 
     'screenWidth': canvas.width, 
   }
+  // TODO : filter size を設定できるようにする
   const filterConstants = {
     'depth_threshold' : radius * 10, 
     'max_filter_size' : 100, 
@@ -765,7 +753,7 @@ async function main() {
   //   { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
   // ];
 
-  let init_box_size = [50, 50, 50];
+  let init_box_size = [45, 45, 70];
   let real_box_size = [...init_box_size];
   const particlesData = init_dambreak(init_box_size);
 
@@ -930,7 +918,7 @@ async function main() {
     fluidUniformsViews.view_matrix.set(view);
     mat4.inverse(view, inv_view);
     fluidUniformsViews.inv_view_matrix.set(inv_view); // Don't forget!!!!
-    real_box_size[2] = init_box_size[2] * (0.25 * (Math.cos(0 * t) + 1.) + 0.5);
+    real_box_size[2] = init_box_size[2] * (0.25 * (Math.cos(3 * t) + 1.) + 0.5);
     realBoxSizeViews.set(real_box_size);
     initBoxSizeViews.set(init_box_size);
     device.queue.writeBuffer(uniformBuffer, 0, uniformsValues);
@@ -940,7 +928,7 @@ async function main() {
     const gridCount = Math.ceil(init_box_size[0]) * Math.ceil(init_box_size[1]) * Math.ceil(init_box_size[2]);
     if (gridCount > maxGridCount) {
       throw new Error("gridCount is bigger than maxGridCount");
-    }
+    } 
     // ボックスサイズの変更
     // const slider = document.getElementById("slider") as HTMLInputElement;
     // const sliderValue = document.getElementById("slider-value") as HTMLSpanElement;
