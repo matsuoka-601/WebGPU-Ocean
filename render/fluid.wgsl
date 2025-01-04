@@ -1,11 +1,12 @@
 @group(0) @binding(0) var texture_sampler: sampler;
 @group(0) @binding(1) var texture: texture_2d<f32>;
-@group(0) @binding(2) var<uniform> uniforms: FluidUniforms;
+@group(0) @binding(2) var<uniform> uniforms: RenderUniforms;
 @group(0) @binding(3) var thickness_texture: texture_2d<f32>;
 @group(0) @binding(4) var envmap_texture: texture_cube<f32>;
 
-struct FluidUniforms {
+struct RenderUniforms {
     texel_size: vec2f, 
+    sphere_size: f32, 
     inv_projection_matrix: mat4x4f, 
     projection_matrix: mat4x4f, 
     view_matrix: mat4x4f, 

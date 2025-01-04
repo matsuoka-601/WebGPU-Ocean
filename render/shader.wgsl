@@ -14,10 +14,13 @@ struct FragmentOutput {
     @builtin(frag_depth) frag_depth: f32, 
 }
 
-struct Uniforms {
-    size: f32, 
-    view_matrix: mat4x4f, 
+struct RenderUniforms {
+    texel_size: vec2f, 
+    sphere_size: f32, 
+    inv_projection_matrix: mat4x4f, 
     projection_matrix: mat4x4f, 
+    view_matrix: mat4x4f, 
+    inv_view_matrix: mat4x4f, 
 }
 
 struct Particle {
@@ -30,7 +33,7 @@ struct Particle {
 }
 
 @group(0) @binding(0) var<storage> particles: array<Particle>;
-@group(0) @binding(1) var<uniform> uniforms: Uniforms;
+@group(0) @binding(1) var<uniform> uniforms: RenderUniforms;
 
 @vertex
 fn vs(    
@@ -48,7 +51,7 @@ fn vs(
 
     // let speed = sqrt(dot(particles[instance_index].velocity, particles[instance_index].velocity));
     // let sz = max(0., uniforms.size - 0.00 * speed);
-    let corner = vec3(corner_positions[vertex_index] * uniforms.size, 0.0);
+    let corner = vec3(corner_positions[vertex_index] * uniforms.sphere_size, 0.0);
     let uv = corner_positions[vertex_index] + 0.5;
 
     let real_position = particles[instance_index].position;
@@ -71,7 +74,7 @@ fn fs(input: FragmentInput) -> FragmentOutput {
     var normalz = sqrt(1.0 - r2);
     var normal = vec3(normalxy, normalz);
 
-    var radius = uniforms.size / 2;
+    var radius = uniforms.sphere_size / 2;
     var real_view_pos: vec4f = vec4f(input.view_position + normal * radius, 1.0);
     var clip_space_pos: vec4f = uniforms.projection_matrix * real_view_pos;
     out.frag_depth = clip_space_pos.z / clip_space_pos.w;

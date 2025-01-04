@@ -1,7 +1,10 @@
-struct Uniforms {
-    size: f32, 
-    view_matrix: mat4x4f, 
+struct RenderUniforms {
+    texel_size: vec2f, 
+    sphere_size: f32, 
+    inv_projection_matrix: mat4x4f, 
     projection_matrix: mat4x4f, 
+    view_matrix: mat4x4f, 
+    inv_view_matrix: mat4x4f, 
 }
 
 struct VertexOutput {
@@ -23,7 +26,7 @@ struct Particle {
 }
 
 @group(0) @binding(0) var<storage> particles: array<Particle>;
-@group(0) @binding(1) var<uniform> uniforms: Uniforms;
+@group(0) @binding(1) var<uniform> uniforms: RenderUniforms;
 
 @vertex
 fn vs(    
@@ -42,7 +45,7 @@ fn vs(
 
     // let speed = sqrt(dot(particles[instance_index].velocity, particles[instance_index].velocity));
     // let sz = max(0., uniforms.size - 0.00 * speed);
-    let corner = vec3(corner_positions[vertex_index] * uniforms.size, 0.0);
+    let corner = vec3(corner_positions[vertex_index] * uniforms.sphere_size, 0.0);
     let uv = corner_positions[vertex_index] + 0.5;
 
     let real_position = particles[instance_index].position;

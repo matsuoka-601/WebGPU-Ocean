@@ -1,4 +1,4 @@
-class MLSMPMSimulator {
+class Camera {
     constructor () {
         
     }

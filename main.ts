@@ -27,7 +27,7 @@ const max_z_grids = 64;
 let numParticles = 0;
 function init_dambreak(init_box_size: number[]) {
   let particlesBuf = new ArrayBuffer(particleStructSize * numParticlesMax);
-  const spacing = 0.70;
+  const spacing = 0.65;
 
   for (let j = 0; j < init_box_size[1] * 0.40; j += spacing) {
     for (let i = 3; i < init_box_size[0] - 4; i += spacing) {
@@ -461,12 +461,17 @@ async function main() {
 
 
   // uniform buffer を作る
-  const uniformsValues = new ArrayBuffer(144);
-  const uniformsViews = {
-    size: new Float32Array(uniformsValues, 0, 1),
-    view_matrix: new Float32Array(uniformsValues, 16, 16),
-    projection_matrix: new Float32Array(uniformsValues, 80, 16),
+  const renderUniformsValues = new ArrayBuffer(272);
+  const renderUniformsViews = {
+    texel_size: new Float32Array(renderUniformsValues, 0, 2),
+    sphere_size: new Float32Array(renderUniformsValues, 8, 2),
+    inv_projection_matrix: new Float32Array(renderUniformsValues, 16, 16),
+    projection_matrix: new Float32Array(renderUniformsValues, 80, 16),
+    view_matrix: new Float32Array(renderUniformsValues, 144, 16),
+    inv_view_matrix: new Float32Array(renderUniformsValues, 208, 16),
   };
+  renderUniformsViews.texel_size.set([1.0 / canvas.width, 1.0 / canvas.height]);
+
 
   const filterXUniformsValues = new ArrayBuffer(8);
   const filterYUniformsValues = new ArrayBuffer(8);
@@ -475,22 +480,6 @@ async function main() {
   filterXUniformsViews.blur_dir.set([1.0, 0.0]);
   filterYUniformsViews.blur_dir.set([0.0, 1.0]);
 
-  const fluidUniformsValues = new ArrayBuffer(272);
-  const fluidUniformsViews = {
-    texel_size: new Float32Array(fluidUniformsValues, 0, 2),
-    inv_projection_matrix: new Float32Array(fluidUniformsValues, 16, 16),
-    projection_matrix: new Float32Array(fluidUniformsValues, 80, 16),
-    view_matrix: new Float32Array(fluidUniformsValues, 144, 16), 
-    inv_view_matrix: new Float32Array(fluidUniformsValues, 208, 16),
-  };  
-  fluidUniformsViews.texel_size.set([1.0 / canvas.width, 1.0 / canvas.height]);
-  fluidUniformsViews.projection_matrix.set(projection);
-  const inv_projection = mat4.identity();
-  const inv_view = mat4.identity();
-  mat4.inverse(projection, inv_projection);
-  mat4.inverse(view, inv_view);
-  fluidUniformsViews.inv_projection_matrix.set(inv_projection);
-  fluidUniformsViews.inv_view_matrix.set(inv_view);
 
   const realBoxSizeValues = new ArrayBuffer(12);
   const realBoxSizeViews = new Float32Array(realBoxSizeValues);
@@ -510,11 +499,6 @@ async function main() {
   })
 
 
-  const uniformBuffer = device.createBuffer({
-    label: 'uniform buffer', 
-    size: uniformsValues.byteLength,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  })
   const filterXUniformBuffer = device.createBuffer({
     label: 'filter uniform buffer', 
     size: filterXUniformsValues.byteLength, 
@@ -525,9 +509,9 @@ async function main() {
     size: filterYUniformsValues.byteLength, 
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
-  const fluidUniformBuffer = device.createBuffer({
+  const renderUniformBuffer = device.createBuffer({
     label: 'filter uniform buffer', 
-    size: fluidUniformsValues.byteLength, 
+    size: renderUniformsValues.byteLength, 
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
   const realBoxSizeBuffer = device.createBuffer({
@@ -542,7 +526,6 @@ async function main() {
   })
   device.queue.writeBuffer(filterXUniformBuffer, 0, filterXUniformsValues);
   device.queue.writeBuffer(filterYUniformBuffer, 0, filterYUniformsValues);
-  device.queue.writeBuffer(fluidUniformBuffer, 0, fluidUniformsValues);
 
 
   // 計算の bindGroup
@@ -592,7 +575,7 @@ async function main() {
     layout: ballPipeline.getBindGroupLayout(0),  
     entries: [
       { binding: 0, resource: { buffer: particlesBuffer }},
-      { binding: 1, resource: { buffer: uniformBuffer }},
+      { binding: 1, resource: { buffer: renderUniformBuffer }},
     ]
   })
   const circleBindGroup = device.createBindGroup({
@@ -600,7 +583,7 @@ async function main() {
     layout: circlePipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: particlesBuffer }},
-      { binding: 1, resource: { buffer: uniformBuffer }},
+      { binding: 1, resource: { buffer: renderUniformBuffer }},
     ],
   })
   const showBindGroup = device.createBindGroup({
@@ -637,7 +620,7 @@ async function main() {
     entries: [
       { binding: 0, resource: sampler },
       { binding: 1, resource: renderTargetTextureView },
-      { binding: 2, resource: { buffer: fluidUniformBuffer } },
+      { binding: 2, resource: { buffer: renderUniformBuffer } },
       { binding: 3, resource: thicknessTextureView },
       { binding: 4, resource: cubemapTextureView }, 
     ],
@@ -647,7 +630,7 @@ async function main() {
     layout: thicknessPipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: particlesBuffer }},
-      { binding: 1, resource: { buffer: uniformBuffer }},
+      { binding: 1, resource: { buffer: renderUniformBuffer }},
     ],
   })
   const thicknessFilterBindGroups = [
@@ -909,20 +892,21 @@ async function main() {
     
 
     // 行列の更新
-    uniformsViews.size.set([diameter]);
-    uniformsViews.projection_matrix.set(projection);
+    renderUniformsViews.sphere_size.set([diameter]);
+    renderUniformsViews.projection_matrix.set(projection);
+    const inv_projection = mat4.inverse(projection);
+    renderUniformsViews.inv_projection_matrix.set(inv_projection)
+
     const view = recalculateView(currentDistance, currentYtheta, currentXtheta,
          [init_box_size[0] / 2., init_box_size[1] / 4, init_box_size[2] / 2.]
       );
-    uniformsViews.view_matrix.set(view);
-    fluidUniformsViews.view_matrix.set(view);
-    mat4.inverse(view, inv_view);
-    fluidUniformsViews.inv_view_matrix.set(inv_view); // Don't forget!!!!
+    renderUniformsViews.view_matrix.set(view);
+    const inv_view = mat4.inverse(view);
+    renderUniformsViews.inv_view_matrix.set(inv_view); // Don't forget!!!!
     real_box_size[2] = init_box_size[2] * (0.25 * (Math.cos(3 * t) + 1.) + 0.5);
     realBoxSizeViews.set(real_box_size);
     initBoxSizeViews.set(init_box_size);
-    device.queue.writeBuffer(uniformBuffer, 0, uniformsValues);
-    device.queue.writeBuffer(fluidUniformBuffer, 0, fluidUniformsValues);
+    device.queue.writeBuffer(renderUniformBuffer, 0, renderUniformsValues);
     device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues);
     device.queue.writeBuffer(initBoxSizeBuffer, 0, initBoxSizeValues);
     const gridCount = Math.ceil(init_box_size[0]) * Math.ceil(init_box_size[1]) * Math.ceil(init_box_size[2]);
