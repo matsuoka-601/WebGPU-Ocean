@@ -7,3 +7,8 @@ export const renderUniformsViews = {
   view_matrix: new Float32Array(renderUniformsValues, 144, 16),
   inv_view_matrix: new Float32Array(renderUniformsValues, 208, 16),
 };
+
+
+export const numParticlesMax = 400000;
+export const particleStructSize = 112;
+

@@ -27,7 +27,7 @@ export class Camera {
         this.sensitivity = 0.005
         this.currentDistance = initDistance
         this.maxDistance = 1.2 * this.currentDistance
-        this.minDistance = 0.8 * this.currentDistance
+        this.minDistance = 0.3 * this.currentDistance
         this.target = target
         this.fov = fov
 
@@ -81,8 +81,6 @@ export class Camera {
         mat4.translate(mat, [0, 0, this.currentDistance], mat)
         var position = mat4.multiply(mat, [0, 0, 0, 1])
 
-        console.log(this.target, this.currentXtheta, this.currentYtheta, this.currentDistance)
-      
         const view = mat4.lookAt(
           [position[0], position[1], position[2]], // position
           this.target, // target
