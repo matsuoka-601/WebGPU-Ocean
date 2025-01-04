@@ -16,6 +16,9 @@ import g2p from './mls-mpm/g2p.wgsl';
 import { PrefixSumKernel } from 'webgpu-radix-sort';
 import { mat4 } from 'wgpu-matrix'
 
+import { Camera } from './camera'
+import { renderUniformsViews, renderUniformsValues } from './common'
+
 /// <reference types="@webgpu/types" />
 
 const numParticlesMax = 400000;
@@ -96,29 +99,6 @@ async function init() {
   })
 
   return { canvas, device, presentationFormat, context }
-}
-
-function init_camera(canvas: HTMLCanvasElement, fov: number) {
-  const aspect = canvas.clientWidth / canvas.clientHeight
-  const projection = mat4.perspective(fov, aspect, 0.1, 500)
-  const view = mat4.identity()
-  return { projection, view } 
-}
-
-function recalculateView(r: number, xRotate: number, yRotate: number, target: number[]) {
-  var mat = mat4.identity();
-  mat4.translate(mat, target, mat);
-  mat4.rotateY(mat, yRotate, mat);
-  mat4.rotateX(mat, xRotate, mat);
-  mat4.translate(mat, [0, 0, r], mat);
-  var position = mat4.multiply(mat, [0, 0, 0, 1]);
-
-  const view = mat4.lookAt(
-    [position[0], position[1], position[2]], // position
-    target, // target
-    [0, 1, 0], // up
-  )
-  return view;
 }
 
 const radius = 0.6; // どれくらいがいいかな
@@ -203,9 +183,6 @@ async function main() {
   })
 
   const fov = 45 * Math.PI / 180;
-  const { projection, view } = init_camera(canvas, fov);
-
-
 
   const screenConstants = {
     'screenHeight': canvas.height, 
@@ -461,15 +438,6 @@ async function main() {
 
 
   // uniform buffer を作る
-  const renderUniformsValues = new ArrayBuffer(272);
-  const renderUniformsViews = {
-    texel_size: new Float32Array(renderUniformsValues, 0, 2),
-    sphere_size: new Float32Array(renderUniformsValues, 8, 2),
-    inv_projection_matrix: new Float32Array(renderUniformsValues, 16, 16),
-    projection_matrix: new Float32Array(renderUniformsValues, 80, 16),
-    view_matrix: new Float32Array(renderUniformsValues, 144, 16),
-    inv_view_matrix: new Float32Array(renderUniformsValues, 208, 16),
-  };
   renderUniformsViews.texel_size.set([1.0 / canvas.width, 1.0 / canvas.height]);
 
 
@@ -655,15 +623,7 @@ async function main() {
   ]
 
 
-  let isDragging = false;
-  let prevX = 0;
-  let prevY = 0;
-  let currentXtheta = -Math.PI / 2;
-  let currentYtheta = -Math.PI / 12;
-  const SENSITIVITY = 0.005;
-  const MIN_YTHETA = -0.99 * Math.PI / 2.;
-  const MAX_YTHETA = 0;
-  let boxWidthRatio = 1.0;
+  
 
   let distanceParamsIndex = 1; // 20000 
   const distanceParams = [
@@ -677,43 +637,10 @@ async function main() {
   // let currentDistance = 30; 
 
   const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
-
-  canvasElement.addEventListener("mousedown", (event: MouseEvent) => {
-    isDragging = true;
-    prevX = event.clientX;
-    prevY = event.clientY;
-  });
-  canvasElement.addEventListener("wheel", (event: WheelEvent) => {
-    event.preventDefault();
-    var scrollDelta = event.deltaY;
-    currentDistance += ((scrollDelta > 0) ? 1 : -1) * 0.5;
-    const distanceParam = distanceParams[distanceParamsIndex];
-    if (currentDistance < distanceParam.MIN_DISTANCE) currentDistance = distanceParam.MIN_DISTANCE;
-    if (currentDistance > distanceParam.MAX_DISTANCE) currentDistance = distanceParam.MAX_DISTANCE;  
-  })
-  document.addEventListener("mousemove", (event: MouseEvent) => {
-    if (isDragging) {
-      const currentX = event.clientX;
-      const currentY = event.clientY;
-      const deltaX = prevX - currentX;
-      const deltaY = prevY - currentY;
-      currentXtheta += SENSITIVITY * deltaX;
-      currentYtheta += SENSITIVITY * deltaY;
-      if (currentYtheta > MAX_YTHETA) {
-        currentYtheta = MAX_YTHETA
-      }
-      if (currentYtheta < MIN_YTHETA) {
-        currentYtheta = MIN_YTHETA
-      }
-      prevX = currentX;
-      prevY = currentY;
-    }
-  });
-  document.addEventListener("mouseup", () => {
-    if (isDragging) {
-      isDragging = false;
-    }
-  });
+  const initDistance = 80
+  let init_box_size = [45, 45, 70];
+  let real_box_size = [...init_box_size];
+  const camera = new Camera(canvasElement, initDistance, [init_box_size[0] / 2, init_box_size[1] / 4, init_box_size[2] / 2], fov);
 
   // ボタン押下の監視
   let form = document.getElementById('number-button') as HTMLFormElement;
@@ -736,8 +663,6 @@ async function main() {
   //   { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
   // ];
 
-  let init_box_size = [45, 45, 70];
-  let real_box_size = [...init_box_size];
   const particlesData = init_dambreak(init_box_size);
 
   device.queue.writeBuffer(particlesBuffer, 0, particlesData)
@@ -889,21 +814,9 @@ async function main() {
       }
     ]
 
-    
-
     // 行列の更新
     renderUniformsViews.sphere_size.set([diameter]);
-    renderUniformsViews.projection_matrix.set(projection);
-    const inv_projection = mat4.inverse(projection);
-    renderUniformsViews.inv_projection_matrix.set(inv_projection)
-
-    const view = recalculateView(currentDistance, currentYtheta, currentXtheta,
-         [init_box_size[0] / 2., init_box_size[1] / 4, init_box_size[2] / 2.]
-      );
-    renderUniformsViews.view_matrix.set(view);
-    const inv_view = mat4.inverse(view);
-    renderUniformsViews.inv_view_matrix.set(inv_view); // Don't forget!!!!
-    real_box_size[2] = init_box_size[2] * (0.25 * (Math.cos(3 * t) + 1.) + 0.5);
+    real_box_size[2] = init_box_size[2] * (0.25 * (Math.cos(2 * t) + 1.) + 0.5);
     realBoxSizeViews.set(real_box_size);
     initBoxSizeViews.set(init_box_size);
     device.queue.writeBuffer(renderUniformBuffer, 0, renderUniformsValues);
@@ -928,6 +841,8 @@ async function main() {
     // device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues);
 
     const commandEncoder = device.createCommandEncoder()
+
+    console.log(renderUniformsViews)
 
     // 計算のためのパス
     const computePass = commandEncoder.beginComputePass();
