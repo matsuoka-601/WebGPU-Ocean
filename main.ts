@@ -1,13 +1,3 @@
-import shader from './render/shader.wgsl'
-import show from './render/show.wgsl'
-import filter from './render/bilateral.wgsl'
-import fluid from './render/fluid.wgsl'
-import vertex from './render/vertex.wgsl'
-import thickness from './render/thickness.wgsl'
-import gaussian from './render/gaussian.wgsl'
-import ball from './render/ball.wgsl'
-
-
 import { PrefixSumKernel } from 'webgpu-radix-sort';
 import { mat4 } from 'wgpu-matrix'
 
@@ -71,212 +61,7 @@ async function main() {
     alphaMode: 'premultiplied',
   })
 
-  const vertexModule = device.createShaderModule({ code: vertex })
-  const shaderModule = device.createShaderModule({ code: shader })
-  const showModule = device.createShaderModule({ code: show })
-  const filterModule = device.createShaderModule({ code: filter })
-  const fluidModule = device.createShaderModule({ code: fluid })
-  const ballModule = device.createShaderModule({ code: ball })
-  const thicknessModule = device.createShaderModule({ code: thickness })
-  const thicknessFilterModule = device.createShaderModule({ code: gaussian })
-
-  // レンダリングパイプライン
-  const circlePipeline = device.createRenderPipeline({
-    label: 'circles pipeline', 
-    layout: 'auto', 
-    vertex: { module: shaderModule },
-    fragment: {
-      module: shaderModule,
-      targets: [
-        {
-          format: 'r32float',
-        },
-      ],
-    },
-    primitive: {
-      topology: 'triangle-list', // ここだけプリミティブに応じて変える
-      // cullMode: 'back', 
-    },
-    depthStencil: {
-      depthWriteEnabled: true, // enable depth test
-      depthCompare: 'less',
-      format: 'depth32float'
-    }
-  })
-  const ballPipeline = device.createRenderPipeline({
-    label: 'ball pipeline', 
-    layout: 'auto', 
-    vertex: { module: ballModule }, 
-    fragment: {
-      module: ballModule, 
-      targets: [
-        {
-          format: presentationFormat, 
-        }
-      ]
-    }, 
-    primitive: {
-      topology: 'triangle-list', // ここだけプリミティブに応じて変える
-      // cullMode: 'back', 
-    },
-    depthStencil: {
-      depthWriteEnabled: true, // enable depth test
-      depthCompare: 'less',
-      format: 'depth32float'
-    }
-  })
-
   const fov = 60 * Math.PI / 180;
-
-  const screenConstants = {
-    'screenHeight': canvas.height, 
-    'screenWidth': canvas.width, 
-  }
-  // TODO : filter size を設定できるようにする
-  const filterConstants = {
-    'depth_threshold' : radius * 10, 
-    'max_filter_size' : 100, 
-    'projected_particle_constant' : (10 * diameter * 0.05 * (canvas.height / 2)) / Math.tan(fov / 2), 
-  }
-  const filterPipeline = device.createRenderPipeline({
-    label: 'filter pipeline', 
-    layout: 'auto', 
-    vertex: { 
-      module: vertexModule,  
-      constants: screenConstants
-    },
-    fragment: {
-      module: filterModule, 
-      constants: filterConstants, 
-      targets: [
-        {
-          format: 'r32float',
-        },
-      ],
-    },
-    primitive: {
-      topology: 'triangle-list', // ここだけプリミティブに応じて変える
-      // cullMode: 'back', 
-    },
-  });
-  const fluidPipeline = device.createRenderPipeline({
-    label: 'fluid rendering pipeline', 
-    layout: 'auto', 
-    vertex: { 
-      module: vertexModule,  
-      constants: screenConstants
-    }, 
-    fragment: {
-      module: fluidModule, 
-      targets: [
-        {
-          format: presentationFormat
-        }
-      ],
-    }, 
-    primitive: {
-      topology: 'triangle-list', // ここだけプリミティブに応じて変える
-      cullMode: 'none'
-    },
-  });
-  const thicknessPipeline = device.createRenderPipeline({
-    label: 'thickness pipeline', 
-    layout: 'auto', 
-    vertex: { 
-      module: thicknessModule,  
-    }, 
-    fragment: {
-      module: thicknessModule, 
-      targets: [
-        {
-          format: 'r16float',
-          writeMask: GPUColorWrite.RED,
-          blend: {
-            color: { operation: 'add', srcFactor: 'one', dstFactor: 'one' },
-            alpha: { operation: 'add', srcFactor: 'one', dstFactor: 'one' },
-          }
-        }
-      ],
-    }, 
-    primitive: {
-      topology: 'triangle-list', // ここだけプリミティブに応じて変える
-      cullMode: 'none'
-    },
-  });
-  const thicknessFilterPipeline = device.createRenderPipeline({
-    label: 'thickness filter pipeline', 
-    layout: 'auto', 
-    vertex: { 
-      module: vertexModule,  
-      constants: screenConstants
-    },
-    fragment: {
-      module: thicknessFilterModule,
-      targets: [
-        {
-          format: 'r16float',
-        },
-      ],
-    },
-    primitive: {
-      topology: 'triangle-list', // ここだけプリミティブに応じて変える
-      // cullMode: 'back', 
-    },
-  });
-  const showPipeline = device.createRenderPipeline({
-    label: 'show pipeline', 
-    layout: 'auto', 
-    vertex: { module: vertexModule, constants: screenConstants }, 
-    fragment: {
-      module: showModule, 
-      targets: [
-        {
-          format: presentationFormat
-        }
-      ]
-    }, 
-    primitive: {
-      topology: 'triangle-list', // ここだけプリミティブに応じて変える
-      cullMode: 'none'
-    },
-  })
-  // 計算のためのパイプライン
-
-  // テクスチャ・サンプラの作成
-  const renderTargetTexture = device.createTexture({
-    label: 'depth map texture', 
-    size: [canvas.width, canvas.height, 1],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    format: 'r32float',
-  });
-  const renderTargetTextureView = renderTargetTexture.createView();
-  const tmpTargetTexture = device.createTexture({
-    label: 'temporary texture', 
-    size: [canvas.width, canvas.height, 1],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    format: 'r32float',
-  });
-  const tmpTargetTextureView = tmpTargetTexture.createView();
-  const thicknessTexture = device.createTexture({
-    label: 'thickness map texture', 
-    size: [canvas.width, canvas.height, 1],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    format: 'r16float',
-  });
-  const thicknessTextureView = thicknessTexture.createView();
-  const tmpThicknessTexture = device.createTexture({
-    label: 'temporary thickness map texture', 
-    size: [canvas.width, canvas.height, 1],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    format: 'r16float',
-  });
-  const tmpThicknessTextureView = tmpThicknessTexture.createView();
-  const depthTexture = device.createTexture({
-    size: [canvas.width, canvas.height, 1],
-    format: 'depth32float',
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
-  })
-  const depthTextureView = depthTexture.createView()
 
   let cubemapTexture: GPUTexture;
   {
@@ -294,8 +79,6 @@ async function main() {
       return createImageBitmap(await response.blob());
     });
     const imageBitmaps = await Promise.all(promises);
-
-    console.log(imageBitmaps[0].width, imageBitmaps[0].height);
 
     cubemapTexture = device.createTexture({
       dimension: '2d',
@@ -322,22 +105,8 @@ async function main() {
     dimension: 'cube',
   });
 
-  const sampler = device.createSampler({
-    magFilter: 'linear', 
-    minFilter: 'linear'
-  });
-
-
   // uniform buffer を作る
   renderUniformsViews.texel_size.set([1.0 / canvas.width, 1.0 / canvas.height]);
-
-
-  const filterXUniformsValues = new ArrayBuffer(8);
-  const filterYUniformsValues = new ArrayBuffer(8);
-  const filterXUniformsViews = { blur_dir: new Float32Array(filterXUniformsValues) };
-  const filterYUniformsViews = { blur_dir: new Float32Array(filterYUniformsValues) };
-  filterXUniformsViews.blur_dir.set([1.0, 0.0]);
-  filterYUniformsViews.blur_dir.set([0.0, 1.0]);
 
   // storage buffer を作る
   const particleBuffer = device.createBuffer({
@@ -345,26 +114,11 @@ async function main() {
     size: particleStructSize * numParticlesMax, 
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
-
-
-  const filterXUniformBuffer = device.createBuffer({
-    label: 'filter uniform buffer', 
-    size: filterXUniformsValues.byteLength, 
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  })
-  const filterYUniformBuffer = device.createBuffer({
-    label: 'filter uniform buffer', 
-    size: filterYUniformsValues.byteLength, 
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  })
   const renderUniformBuffer = device.createBuffer({
     label: 'filter uniform buffer', 
     size: renderUniformsValues.byteLength, 
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
-
-  device.queue.writeBuffer(filterXUniformBuffer, 0, filterXUniformsValues);
-  device.queue.writeBuffer(filterYUniformBuffer, 0, filterYUniformsValues);
 
 
   // レンダリングのパイプライン
@@ -381,8 +135,8 @@ async function main() {
   // let currentDistance = 30; 
 
   const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
-  const initDistance = 80
-  let initBoxSize = [40, 40, 80];
+  const initDistance = 70
+  let initBoxSize = [50, 50, 80];
   let realBoxSize = [...initBoxSize];
   const camera = new Camera(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], fov);
   const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, initBoxSize, diameter, device)
@@ -485,12 +239,6 @@ async function main() {
       // ballPassEncoder.draw(6, mlsmpmSimulator.numParticles);
       // ballPassEncoder.end();
     }
-
-    // const showPassEncoder = commandEncoder.beginRenderPass(showPassDescriptor);
-    // showPassEncoder.setBindGroup(0, showBindGroup);
-    // showPassEncoder.setPipeline(showPipeline);
-    // showPassEncoder.draw(6);
-    // showPassEncoder.end();
 
     device.queue.submit([commandEncoder.finish()])
     const end = performance.now();

@@ -1,5 +1,4 @@
 import depthMap from './depthMap.wgsl'
-import show from './show.wgsl'
 import depthFilter from './bilateral.wgsl'
 import fluid from './fluid.wgsl'
 import fullScreen from './fullScreen.wgsl'
@@ -60,7 +59,6 @@ export class FluidRenderer {
 
         const vertexModule = device.createShaderModule({ code: fullScreen })
         const depthMapModule = device.createShaderModule({ code: depthMap })
-        const showModule = device.createShaderModule({ code: show })
         const depthFilterModule = device.createShaderModule({ code: depthFilter })
         const fluidModule = device.createShaderModule({ code: fluid })
         const sphereModule = device.createShaderModule({ code: sphere })
