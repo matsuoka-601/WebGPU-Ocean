@@ -60,7 +60,7 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
 
     var normal: vec3f = -normalize(cross(ddx, ddy)); 
     var rayDir = normalize(viewPos);
-    var lightDir = normalize((uniforms.view_matrix * vec4f(1, 1, 1, 0.)).xyz);
+    var lightDir = normalize((uniforms.view_matrix * vec4f(0, 0, 1, 0.)).xyz);
     var H: vec3f        = normalize(lightDir - rayDir);
     var specular: f32   = pow(max(0.0, dot(H, normal)), 250.);
     var diffuse: f32  = max(0.0, dot(lightDir, normal)) * 1.0;
@@ -73,7 +73,7 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
     var refractionColor: vec3f = bgColor * transmittance;
 
     let F0 = 0.02;
-    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 0.3);
+    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 1.0);
 
     var reflectionDir: vec3f = reflect(rayDir, normal);
     var reflectionDirWorld: vec3f = (uniforms.inv_view_matrix * vec4f(reflectionDir, 0.0)).xyz;

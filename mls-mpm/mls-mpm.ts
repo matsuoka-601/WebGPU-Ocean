@@ -185,7 +185,7 @@ export class MLSMPMSimulator {
 
         this.numParticles = 0;
         
-        for (let j = 0; j < initBoxSize[1] * 0.50; j += spacing) {
+        for (let j = 0; j < initBoxSize[1] * 0.40; j += spacing) {
             for (let i = 3; i < initBoxSize[0] - 4; i += spacing) {
                 for (let k = 3; k < initBoxSize[2] / 2; k += spacing) {
                     const offset = particleStructSize * this.numParticles;

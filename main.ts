@@ -14,6 +14,7 @@ import { mat4 } from 'wgpu-matrix'
 import { Camera } from './camera'
 import { MLSMPMSimulator } from './mls-mpm/mls-mpm'
 import { renderUniformsViews, renderUniformsValues, numParticlesMax, particleStructSize } from './common'
+import { FluidRenderer } from './render/fluidRender'
 
 /// <reference types="@webgpu/types" />
 
@@ -367,92 +368,6 @@ async function main() {
 
 
   // レンダリングのパイプライン
-  const ballBindGroup = device.createBindGroup({
-    label: 'ball bind group', 
-    layout: ballPipeline.getBindGroupLayout(0),  
-    entries: [
-      { binding: 0, resource: { buffer: particleBuffer }},
-      { binding: 1, resource: { buffer: renderUniformBuffer }},
-    ]
-  })
-  const circleBindGroup = device.createBindGroup({
-    label: 'circle bind group', 
-    layout: circlePipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: particleBuffer }},
-      { binding: 1, resource: { buffer: renderUniformBuffer }},
-    ],
-  })
-  const showBindGroup = device.createBindGroup({
-    label: 'show bind group', 
-    layout: showPipeline.getBindGroupLayout(0),
-    entries: [
-      // { binding: 0, resource: sampler },
-      { binding: 1, resource: thicknessTextureView },
-    ],
-  })
-  const filterBindGroups : GPUBindGroup[] = [
-    device.createBindGroup({
-      label: 'filterX bind group', 
-      layout: filterPipeline.getBindGroupLayout(0),
-      entries: [
-        // { binding: 0, resource: sampler },
-        { binding: 1, resource: renderTargetTextureView }, // 元の領域から読み込む
-        { binding: 2, resource: { buffer: filterXUniformBuffer } },
-      ],
-    }), 
-    device.createBindGroup({
-      label: 'filterY bind group', 
-      layout: filterPipeline.getBindGroupLayout(0),
-      entries: [
-        // { binding: 0, resource: sampler },
-        { binding: 1, resource: tmpTargetTextureView }, // 一時領域から読み込む
-        { binding: 2, resource: { buffer: filterYUniformBuffer }}
-      ],
-    })
-  ];
-  const fluidBindGroup = device.createBindGroup({
-    label: 'fluid bind group', 
-    layout: fluidPipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: sampler },
-      { binding: 1, resource: renderTargetTextureView },
-      { binding: 2, resource: { buffer: renderUniformBuffer } },
-      { binding: 3, resource: thicknessTextureView },
-      { binding: 4, resource: cubemapTextureView }, 
-    ],
-  })
-  const thicknessBindGroup = device.createBindGroup({
-    label: 'thickness bind group', 
-    layout: thicknessPipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: particleBuffer }},
-      { binding: 1, resource: { buffer: renderUniformBuffer }},
-    ],
-  })
-  const thicknessFilterBindGroups = [
-    device.createBindGroup({
-      label: 'thickness filterX bind group', 
-      layout: thicknessFilterPipeline.getBindGroupLayout(0),
-      entries: [
-        // { binding: 0, resource: sampler },
-        { binding: 1, resource: thicknessTextureView }, // 1 回目のパスはもとのテクスチャから
-        { binding: 2, resource: { buffer: filterXUniformBuffer } }, 
-      ],
-    }), 
-    device.createBindGroup({
-      label: 'thickness filterY bind group', 
-      layout: thicknessFilterPipeline.getBindGroupLayout(0),
-      entries: [
-        // { binding: 0, resource: sampler },
-        { binding: 1, resource: tmpThicknessTextureView }, // 2 回目のパスは一時テクスチャから
-        { binding: 2, resource: { buffer: filterYUniformBuffer } }, 
-      ],
-    }), 
-  ]
-
-
-  
 
   let distanceParamsIndex = 1; // 20000 
   const distanceParams = [
@@ -470,8 +385,9 @@ async function main() {
   let initBoxSize = [40, 40, 80];
   let realBoxSize = [...initBoxSize];
   const camera = new Camera(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], fov);
-
   const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, initBoxSize, diameter, device)
+  const renderer = new FluidRenderer(device, canvas, presentationFormat, 
+    radius, fov, particleBuffer, renderUniformBuffer, cubemapTextureView)
 
   // ボタン押下の監視
   let form = document.getElementById('number-button') as HTMLFormElement;
@@ -533,114 +449,7 @@ async function main() {
     //   pressed = false;
     // }
 
-    const circlePassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: renderTargetTextureView,
-          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
-      depthStencilAttachment: {
-        view: depthTexture.createView(),
-        depthClearValue: 1.0,
-        depthLoadOp: 'clear',
-        depthStoreOp: 'store',
-      },
-    }
 
-    const ballPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: context.getCurrentTexture().createView(),
-          clearValue: { r: 0.8, g: 0.8, b: 0.8, a: 1.0 },
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
-      depthStencilAttachment: {
-        view: depthTexture.createView(),
-        depthClearValue: 1.0,
-        depthLoadOp: 'clear',
-        depthStoreOp: 'store',
-      },
-    }
-
-    const filterPassDescriptors: GPURenderPassDescriptor[] = [
-      {
-        colorAttachments: [
-          {
-            view: tmpTargetTextureView, // 一時領域へ書き込み
-            clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-          },
-        ],
-      }, 
-      {
-        colorAttachments: [
-          {
-            view: renderTargetTextureView, // Y のパスはもとに戻す
-            clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-          },
-        ],
-      }
-    ]
-    const showPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: context.getCurrentTexture().createView(),
-          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
-    }
-    const fluidPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: context.getCurrentTexture().createView(),
-          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
-    }
-    const thicknessPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [
-        {
-          view: thicknessTextureView, // 変える
-          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
-    }
-    const thicknessFilterPassDescriptors: GPURenderPassDescriptor[] = [
-      {
-        colorAttachments: [
-          {
-            view: tmpThicknessTextureView, // 一時領域へ書き込み
-            clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-          },
-        ],
-      }, 
-      {
-        colorAttachments: [
-          {
-            view: thicknessTextureView, // Y のパスはもとに戻す
-            clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-          },
-        ],
-      }
-    ]
 
     // ボックスサイズの変更
     const slider = document.getElementById("slider") as HTMLInputElement;
@@ -668,54 +477,13 @@ async function main() {
 
     // レンダリングのためのパス
     if (!ballFl) {
-      const circlePassEncoder = commandEncoder.beginRenderPass(circlePassDescriptor);
-      circlePassEncoder.setBindGroup(0, circleBindGroup);
-      circlePassEncoder.setPipeline(circlePipeline);
-      circlePassEncoder.draw(6, mlsmpmSimulator.numParticles);
-      circlePassEncoder.end();
-      for (var iter = 0; iter < 5; iter++) {
-        const filterPassEncoderX = commandEncoder.beginRenderPass(filterPassDescriptors[0]);
-        filterPassEncoderX.setBindGroup(0, filterBindGroups[0]);
-        filterPassEncoderX.setPipeline(filterPipeline);
-        filterPassEncoderX.draw(6);
-        filterPassEncoderX.end();  
-        const filterPassEncoderY = commandEncoder.beginRenderPass(filterPassDescriptors[1]);
-        filterPassEncoderY.setBindGroup(0, filterBindGroups[1]);
-        filterPassEncoderY.setPipeline(filterPipeline);
-        filterPassEncoderY.draw(6);
-        filterPassEncoderY.end();  
-      }
-  
-      const thicknessPassEncoder = commandEncoder.beginRenderPass(thicknessPassDescriptor);
-      thicknessPassEncoder.setBindGroup(0, thicknessBindGroup);
-      thicknessPassEncoder.setPipeline(thicknessPipeline);
-      thicknessPassEncoder.draw(6, mlsmpmSimulator.numParticles);
-      thicknessPassEncoder.end();
-  
-      for (var iter = 0; iter < 1; iter++) { // 多いか？
-        const thicknessFilterPassEncoderX = commandEncoder.beginRenderPass(thicknessFilterPassDescriptors[0]);
-        thicknessFilterPassEncoderX.setBindGroup(0, thicknessFilterBindGroups[0]);
-        thicknessFilterPassEncoderX.setPipeline(thicknessFilterPipeline);
-        thicknessFilterPassEncoderX.draw(6);
-        thicknessFilterPassEncoderX.end(); 
-        const thicknessFilterPassEncoderY = commandEncoder.beginRenderPass(thicknessFilterPassDescriptors[1]);
-        thicknessFilterPassEncoderY.setBindGroup(0, thicknessFilterBindGroups[1]);
-        thicknessFilterPassEncoderY.setPipeline(thicknessFilterPipeline);
-        thicknessFilterPassEncoderY.draw(6);
-        thicknessFilterPassEncoderY.end(); 
-      }
-
-      const fluidPassEncoder = commandEncoder.beginRenderPass(fluidPassDescriptor);
-      fluidPassEncoder.setBindGroup(0, fluidBindGroup);
-      fluidPassEncoder.setPipeline(fluidPipeline);
-      fluidPassEncoder.draw(6);
-      fluidPassEncoder.end();
+      renderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles)
     } else {
-      const ballPassEncoder = commandEncoder.beginRenderPass(ballPassDescriptor);
-      ballPassEncoder.setBindGroup(0, ballBindGroup);
-      ballPassEncoder.setPipeline(ballPipeline);
-      ballPassEncoder.draw(6, mlsmpmSimulator.numParticles);
-      ballPassEncoder.end();
+      // const ballPassEncoder = commandEncoder.beginRenderPass(ballPassDescriptor);
+      // ballPassEncoder.setBindGroup(0, ballBindGroup);
+      // ballPassEncoder.setPipeline(ballPipeline);
+      // ballPassEncoder.draw(6, mlsmpmSimulator.numParticles);
+      // ballPassEncoder.end();
     }
 
     // const showPassEncoder = commandEncoder.beginRenderPass(showPassDescriptor);
