@@ -166,6 +166,7 @@ export class SPHSimulator {
         sphParamsViews.nearStiffness.set([nearStiffness])
         sphParamsViews.restDensity.set([restDensity])
         sphParamsViews.viscosity.set([viscosity])
+        // n はあとで
 
         this.cellParticleCountBuffer = device.createBuffer({ // 累積和はここに保存
             label: 'cell particle count buffer', 
@@ -228,6 +229,7 @@ export class SPHSimulator {
                 { binding: 5, resource: { buffer: sphParamsBuffer }}, 
             ]
         })
+        
         this.densityBindGroup = device.createBindGroup({
             layout: this.densityPipeline.getBindGroupLayout(0),
             entries: [
@@ -257,6 +259,7 @@ export class SPHSimulator {
             ],
         })
 
+        console.log(environmentViews)
 
         const particleData = this.initDambreak(initHalfBoxSize, 20000)
         sphParamsViews.n.set([this.numParticles])
@@ -281,6 +284,7 @@ export class SPHSimulator {
             computePass.setBindGroup(0, this.reorderBindGroup);
             computePass.setPipeline(this.reorderPipeline)
             computePass.dispatchWorkgroups(Math.ceil(this.numParticles / 64))
+
             computePass.setBindGroup(0, this.densityBindGroup)
             computePass.setPipeline(this.densityPipeline)
             computePass.dispatchWorkgroups(Math.ceil(this.numParticles / 64))

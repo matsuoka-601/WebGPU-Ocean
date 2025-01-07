@@ -83,7 +83,7 @@ fn computeDensity(@builtin(global_invocation_id) id: vec3<u32>) {
                     let endCellNum = cellNumberFromId(v.x + dxMax, v.y + dy, v.z + dz);
                     let start = prefixSum[startCellNum];
                     let end = prefixSum[endCellNum + 1];
-                    for (var j = start; j < start; j++) {
+                    for (var j = start; j < end; j++) {
                         let pos_j = sortedParticles[j].position;
                         let r2 = dot(pos_i - pos_j, pos_i - pos_j);
                         if (r2 < params.kernelRadiusPow2) {
@@ -96,13 +96,13 @@ fn computeDensity(@builtin(global_invocation_id) id: vec3<u32>) {
         }
 
         
-        for (var j = 0u; j < n; j = j + 1) {
-            let pos_j = particles[j].position;
-            let r2 = dot(pos_i - pos_j, pos_i - pos_j);
-            if (r2 < params.kernelRadiusPow2) {
-                particles[id.x].density += params.mass * densityKernel(sqrt(r2));
-                particles[id.x].nearDensity += params.mass * nearDensityKernel(sqrt(r2));
-            }
-        }
+        // for (var j = 0u; j < n; j = j + 1) {
+        //     let pos_j = particles[j].position;
+        //     let r2 = dot(pos_i - pos_j, pos_i - pos_j);
+        //     if (r2 < params.kernelRadiusPow2) {
+        //         particles[id.x].density += params.mass * densityKernel(sqrt(r2));
+        //         particles[id.x].nearDensity += params.mass * nearDensityKernel(sqrt(r2));
+        //     }
+        // }
     }
 }

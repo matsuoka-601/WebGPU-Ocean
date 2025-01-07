@@ -1,6 +1,7 @@
 struct Particle {
     position: vec3f, 
-    velocity: vec3f, 
+    v: vec3f, 
+    C: mat3x3f, 
     force: vec3f, 
     density: f32, 
     nearDensity: f32, 
@@ -55,7 +56,7 @@ fn main(@builtin(global_invocation_id) id : vec3<u32>) {
         // TODO : 変える
         if (cellId < env.xGrids * env.yGrids * env.zGrids) {
             let targetIndex = cellParticleCount[cellId + 1] - particleCellOffset[id.x] - 1;
-            if (targetIndex < arrayLength(&targetParticles)) {
+            if (targetIndex < params.n) {
                 targetParticles[targetIndex] = sourceParticles[id.x];
             }
         }
