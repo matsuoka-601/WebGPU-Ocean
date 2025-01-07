@@ -13,7 +13,6 @@ export class MLSMPMSimulator {
     cellStructSize = 16;
     realBoxSizeBuffer: GPUBuffer
     initBoxSizeBuffer: GPUBuffer
-    numParticlesMax = 400000
     numParticles = 0
     gridCount = 0
 
@@ -174,18 +173,18 @@ export class MLSMPMSimulator {
             ],
         })
 
-        const particlesData = this.initDambreak(initBoxSize);
-        device.queue.writeBuffer(particleBuffer, 0, particlesData)
+        const particleData = this.initDambreak(initBoxSize);
+        device.queue.writeBuffer(particleBuffer, 0, particleData)
         console.log(this.numParticles)
     }
 
     initDambreak(initBoxSize: number[]) {
         let particlesBuf = new ArrayBuffer(particleStructSize * numParticlesMax);
-        const spacing = 0.65;
+        const spacing = 0.60;
 
         this.numParticles = 0;
         
-        for (let j = 0; j < initBoxSize[1] * 0.60; j += spacing) {
+        for (let j = 0; j < initBoxSize[1] * 0.80; j += spacing) {
             for (let i = 3; i < initBoxSize[0] - 4; i += spacing) {
                 for (let k = 3; k < initBoxSize[2] / 4; k += spacing) {
                     const offset = particleStructSize * this.numParticles;

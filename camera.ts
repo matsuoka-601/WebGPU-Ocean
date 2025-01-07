@@ -20,7 +20,7 @@ export class Camera {
         this.isDragging = false
         this.prevX = 0
         this.prevY = 0
-        this.currentXtheta = -Math.PI / 2
+        this.currentXtheta = -Math.PI / 4 * 3
         this.currentYtheta = -Math.PI / 12
         this.maxYTheta = 0
         this.minYTheta = -0.99 * Math.PI / 2.

@@ -60,7 +60,7 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
 
     var normal: vec3f = -normalize(cross(ddx, ddy)); 
     var rayDir = normalize(viewPos);
-    var lightDir = normalize((uniforms.view_matrix * vec4f(0, 0, 1, 0.)).xyz);
+    var lightDir = normalize((uniforms.view_matrix * vec4f(0, 0, -1, 0.)).xyz);
     var H: vec3f        = normalize(lightDir - rayDir);
     var specular: f32   = pow(max(0.0, dot(H, normal)), 250.);
     var diffuse: f32  = max(0.0, dot(lightDir, normal)) * 1.0;

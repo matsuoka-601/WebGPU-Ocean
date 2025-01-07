@@ -40,7 +40,7 @@ export class FluidRenderer {
         const maxFilterSize = 100
         const blurdDepthScale = 10
         const diameter = 2 * radius
-        const blurFilterSize = 10
+        const blurFilterSize = 12
 
         const screenConstants = {
             'screenHeight': canvas.height, 
