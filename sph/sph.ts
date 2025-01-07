@@ -7,7 +7,9 @@ import integrate from './integrate.wgsl'
 
 import { PrefixSumKernel } from 'webgpu-radix-sort';
 
-import { renderUniformsViews, numParticlesMax, particleStructSize } from '../common';
+import { renderUniformsViews, numParticlesMax } from '../common';
+
+const particleStructSize = 64
 
 export class SPHSimulator {
     device: GPUDevice
@@ -261,7 +263,7 @@ export class SPHSimulator {
 
         console.log(environmentViews)
 
-        const particleData = this.initDambreak(initHalfBoxSize, 20000)
+        const particleData = this.initDambreak(initHalfBoxSize, 30000)
         sphParamsViews.n.set([this.numParticles])
         device.queue.writeBuffer(sphParamsBuffer, 0, sphParamsValues)
         device.queue.writeBuffer(particleBuffer, 0, particleData)
@@ -315,10 +317,9 @@ export class SPHSimulator {
                     const particleViews = {
                         position: new Float32Array(particlesBuf, offset + 0, 3),
                         v: new Float32Array(particlesBuf, offset + 16, 3),
-                        C: new Float32Array(particlesBuf, offset + 32, 12),
-                        force: new Float32Array(particlesBuf, offset + 80, 3),
-                        density: new Float32Array(particlesBuf, offset + 92, 1),
-                        nearDensity: new Float32Array(particlesBuf, offset + 96, 1),
+                        force: new Float32Array(particlesBuf, offset + 32, 3),
+                        density: new Float32Array(particlesBuf, offset + 44, 1),
+                        nearDensity: new Float32Array(particlesBuf, offset + 48, 1),
                     };
                     particleViews.position.set([x + jitter, y + jitter, z + jitter]);
                     this.numParticles++;

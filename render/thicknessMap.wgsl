@@ -19,7 +19,7 @@ struct FragmentInput {
 struct Particle {
     position: vec3f, 
     v: vec3f, 
-    C: mat3x3f, 
+    // C: mat3x3f, 
     force: vec3f, 
     density: f32, 
     nearDensity: f32, 
@@ -42,9 +42,6 @@ fn vs(
         vec2(-0.5,  0.5),
     );
 
-
-    // let speed = sqrt(dot(particles[instance_index].velocity, particles[instance_index].velocity));
-    // let sz = max(0., uniforms.size - 0.00 * speed);
     let corner = vec3(corner_positions[vertex_index] * uniforms.sphere_size, 0.0);
     let uv = corner_positions[vertex_index] + 0.5;
 

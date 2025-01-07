@@ -9,6 +9,6 @@ export const renderUniformsViews = {
 };
 
 
-export const numParticlesMax = 400000;
+export const numParticlesMax = 200000;
 export const particleStructSize = 112;
 

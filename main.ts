@@ -36,7 +36,7 @@ async function init() {
   // 共通
   // const { devicePixelRatio } = window
   // let devicePixelRatio  = 3.0;
-  let devicePixelRatio  = 1.0;
+  let devicePixelRatio  = 0.7;
   canvas.width = devicePixelRatio * canvas.clientWidth
   canvas.height = devicePixelRatio * canvas.clientHeight
 

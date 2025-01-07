@@ -439,7 +439,7 @@ export class FluidRenderer {
         depthMapPassEncoder.setPipeline(this.depthMapPipeline);
         depthMapPassEncoder.draw(6, numParticles);
         depthMapPassEncoder.end();
-        for (var iter = 0; iter < 5; iter++) {
+        for (var iter = 0; iter < 4; iter++) {
             const depthFilterPassEncoderX = commandEncoder.beginRenderPass(depthFilterPassDescriptors[0]);
             depthFilterPassEncoderX.setBindGroup(0, this.depthFilterBindGroups[0]);
             depthFilterPassEncoderX.setPipeline(this.depthFilterPipeline);
