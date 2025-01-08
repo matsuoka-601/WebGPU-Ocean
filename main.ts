@@ -136,9 +136,12 @@ async function main() {
   // let currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE; 
   // let currentDistance = 30; 
 
-  let numParticleParams = [40000, 70000, 120000, 200000]
-  let initBoxSizes = [[35, 30, 45], [40, 30, 60], [45, 40, 60], [50, 50, 70]]
-  let initDistances = [60, 70, 80, 100]
+  // let numParticleParams = [40000, 70000, 120000, 200000]
+  // let initBoxSizes = [[35, 30, 45], [40, 30, 60], [45, 40, 60], [50, 50, 70]]
+  // let initDistances = [60, 70, 80, 100]
+  let numParticleParams = [10000, 20000, 30000, 40000]
+  let initBoxSizes = [[0.7, 2.0, 0.7], [1.0, 2.0, 1.0], [1.2, 2.0, 1.2], [1.4, 2.0, 1.4]]
+  let initDistances = [1.6, 2.1, 2.3, 2.7]
 
   const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
   // const radius = 0.04; // どれくらいがいいかな
@@ -149,10 +152,15 @@ async function main() {
   // const sphSimulator = new SPHSimulator(particleBuffer, posvelBuffer, initBoxSize, diameter, device)
   // const camera = new Camera(canvasElement, initDistance, [0, -initBoxSize[1], 0], fov);
 
-  const fov = 45 * Math.PI / 180;
-  const radius = 0.6; // どれくらいがいいかな
-  const diameter = 2 * radius;
+  let fov = 90 * Math.PI / 180
+  let radius = 0.6 // どれくらいがいいかな
+  let diameter = 2 * radius
   const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, diameter, device)
+  radius = 0.04
+  diameter = 2 * radius
+  const sphSimulator = new SPHSimulator(particleBuffer, posvelBuffer, diameter, device)
+  const camera = new Camera(canvasElement);
+
   
   const renderer = new FluidRenderer(device, canvas, presentationFormat, 
     radius, fov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
@@ -169,19 +177,6 @@ async function main() {
     }
   });
 
-  let boxSizes = [
-    { xHalf: 0.7, yHalf: 2.0, zHalf: 0.7 }, 
-    { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0 }, 
-    { xHalf: 1.2, yHalf: 2.0, zHalf: 1.2 }, 
-    { xHalf: 1.4, yHalf: 2.0, zHalf: 1.4 }, 
-    { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
-  ];
-  
-  // let environment = {
-  //   boxSize: boxSizes[1], 
-  //   numParticles: 20000, 
-  // } 
-
   // デバイスロストの監視
   let errorLog = document.getElementById('error-reason') as HTMLSpanElement;
   errorLog.textContent = "";
@@ -194,8 +189,8 @@ async function main() {
   const initDistance = initDistances[1]
   let initBoxSize = initBoxSizes[1]
   let realBoxSize = [...initBoxSize];
-  mlsmpmSimulator.reset(numParticleParams[1], initBoxSizes[1])
-  const camera = new Camera(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 8, initBoxSize[2] / 2], fov);
+  sphSimulator.reset(numParticleParams[1], initBoxSizes[1])
+  camera.reset(canvasElement, initDistance, [0, -initBoxSize[1], 0], fov)
 
   let ballFl = false;
   let t = 0;
@@ -208,9 +203,10 @@ async function main() {
       const paramsIdx = parseInt(pressedButton);
       initBoxSize = initBoxSizes[paramsIdx]
       realBoxSize = [...initBoxSize]
-      console.log(initBoxSize, realBoxSize)
-      mlsmpmSimulator.reset(numParticleParams[paramsIdx], initBoxSize)
-      camera.reset(canvasElement, initDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], fov)
+      // mlsmpmSimulator.reset(numParticleParams[paramsIdx], initBoxSize)
+      // camera.reset(canvasElement, initDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], fov)
+      sphSimulator.reset(numParticleParams[paramsIdx], initBoxSize)
+      camera.reset(canvasElement, initDistances[paramsIdx], [0, -initBoxSize[1], 0], fov)
       let slider = document.getElementById("slider") as HTMLInputElement;
       slider.value = "100";
       pressed = false;
@@ -226,18 +222,18 @@ async function main() {
     boxWidthRatio += dVal;
 
     // 行列の更新
-    realBoxSize[2] = initBoxSize[2] * boxWidthRatio;
-    mlsmpmSimulator.changeBoxSize(realBoxSize)
+    // realBoxSize[2] = initBoxSize[2] * boxWidthRatio;
+    // mlsmpmSimulator.changeBoxSize(realBoxSize)
     device.queue.writeBuffer(renderUniformBuffer, 0, renderUniformsValues); // これもなくしたい
 
     const commandEncoder = device.createCommandEncoder()
 
     // 計算のためのパス
-    mlsmpmSimulator.execute(commandEncoder)
+    sphSimulator.execute(commandEncoder)
 
     // レンダリングのためのパス
     if (!ballFl) {
-      renderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles)
+      renderer.execute(context, commandEncoder, sphSimulator.numParticles)
     } else {
       // const ballPassEncoder = commandEncoder.beginRenderPass(ballPassDescriptor);
       // ballPassEncoder.setBindGroup(0, ballBindGroup);

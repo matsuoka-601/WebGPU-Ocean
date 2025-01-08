@@ -16,9 +16,7 @@ export class Camera {
     target: number[]
     fov: number
 
-    constructor (canvasElement: HTMLCanvasElement, initDistance: number, target: number[], fov: number) {
-        this.reset(canvasElement, initDistance, target, fov)
-
+    constructor (canvasElement: HTMLCanvasElement) {
         canvasElement.addEventListener("mousedown", (event: MouseEvent) => {
             this.isDragging = true;
             this.prevX = event.clientX;

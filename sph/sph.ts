@@ -32,6 +32,9 @@ export class SPHSimulator {
     copyPositionBindGroup: GPUBindGroup
 
     cellParticleCountBuffer: GPUBuffer
+    particleBuffer: GPUBuffer
+    realBoxSizeBuffer: GPUBuffer
+    sphParamsBuffer: GPUBuffer
 
     prefixSumKernel: any
 
@@ -39,7 +42,7 @@ export class SPHSimulator {
     numParticles = 0
     gridCount = 0
 
-    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, initHalfBoxSize: number[], diameter: number, device: GPUDevice) {
+    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, diameter: number, device: GPUDevice) {
         this.device = device
         renderUniformsViews.sphere_size.set([diameter])
         const densityModule = device.createShaderModule({ code: density })
@@ -62,7 +65,6 @@ export class SPHSimulator {
         const yGrids = Math.ceil((yLen + sentinel) / cellSize)
         const zGrids = Math.ceil((zLen + sentinel) / cellSize)
         this.gridCount = xGrids * yGrids * zGrids;
-        console.log(this.gridCount)
         const offset = sentinel / 2;
 
         const stiffness = 20;
@@ -122,17 +124,6 @@ export class SPHSimulator {
             }
         });
 
-
-        const realBoxSizeValues = new ArrayBuffer(12);
-        const realBoxSizeViews = {
-            xHalf: new Float32Array(realBoxSizeValues, 0, 1),
-            yHalf: new Float32Array(realBoxSizeValues, 4, 1),
-            zHalf: new Float32Array(realBoxSizeValues, 8, 1),
-        };
-        realBoxSizeViews.xHalf.set([initHalfBoxSize[0]]); 
-        realBoxSizeViews.yHalf.set([initHalfBoxSize[1]]); 
-        realBoxSizeViews.zHalf.set([initHalfBoxSize[2]]);
-
         const environmentValues = new ArrayBuffer(32);
         const environmentViews = {
             xGrids: new Int32Array(environmentValues, 0, 1),
@@ -181,6 +172,8 @@ export class SPHSimulator {
         sphParamsViews.viscosity.set([viscosity])
         // n はあとで
 
+
+        const realBoxSizeValues = new ArrayBuffer(12);
         this.cellParticleCountBuffer = device.createBuffer({ // 累積和はここに保存
             label: 'cell particle count buffer', 
             size: 4 * (this.gridCount + 1),  // 1 要素余分にとっておく
@@ -196,7 +189,7 @@ export class SPHSimulator {
             size: 4 * numParticlesMax,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
-        const realBoxSizeBuffer = device.createBuffer({
+        this.realBoxSizeBuffer = device.createBuffer({
             label: 'real box size buffer', 
             size: realBoxSizeValues.byteLength, 
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -206,13 +199,13 @@ export class SPHSimulator {
             size: environmentValues.byteLength, 
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
-        const sphParamsBuffer = device.createBuffer({
+        this.sphParamsBuffer = device.createBuffer({
             label: 'sph params buffer', 
             size: sphParamsValues.byteLength, 
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
-        device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues)
         device.queue.writeBuffer(environmentBuffer, 0, environmentValues)
+        device.queue.writeBuffer(this.sphParamsBuffer, 0, sphParamsValues)
 
         // BindGroup
         this.gridClearBindGroup = device.createBindGroup({
@@ -228,7 +221,7 @@ export class SPHSimulator {
               { binding: 1, resource: { buffer: particleCellOffsetBuffer }}, 
               { binding: 2, resource: { buffer: particleBuffer }}, 
               { binding: 3, resource: { buffer: environmentBuffer }}, 
-              { binding: 4, resource: { buffer: sphParamsBuffer }}, 
+              { binding: 4, resource: { buffer: this.sphParamsBuffer }}, 
             ],  
         })
         this.reorderBindGroup = device.createBindGroup({
@@ -239,7 +232,7 @@ export class SPHSimulator {
                 { binding: 2, resource: { buffer: this.cellParticleCountBuffer }}, 
                 { binding: 3, resource: { buffer: particleCellOffsetBuffer }}, 
                 { binding: 4, resource: { buffer: environmentBuffer }}, 
-                { binding: 5, resource: { buffer: sphParamsBuffer }}, 
+                { binding: 5, resource: { buffer: this.sphParamsBuffer }}, 
             ]
         })
         
@@ -250,7 +243,7 @@ export class SPHSimulator {
                 { binding: 1, resource: { buffer: targetParticlesBuffer }},
                 { binding: 2, resource: { buffer: this.cellParticleCountBuffer }},
                 { binding: 3, resource: { buffer: environmentBuffer }}, 
-                { binding: 4, resource: { buffer: sphParamsBuffer }}, 
+                { binding: 4, resource: { buffer: this.sphParamsBuffer }}, 
             ],
         })
         this.forceBindGroup = device.createBindGroup({
@@ -260,15 +253,15 @@ export class SPHSimulator {
                 { binding: 1, resource: { buffer: targetParticlesBuffer }},
                 { binding: 2, resource: { buffer: this.cellParticleCountBuffer }},
                 { binding: 3, resource: { buffer: environmentBuffer }}, 
-                { binding: 4, resource: { buffer: sphParamsBuffer }}, 
+                { binding: 4, resource: { buffer: this.sphParamsBuffer }}, 
             ],
         })
         this.integrateBindGroup = device.createBindGroup({
             layout: this.integratePipeline.getBindGroupLayout(0),
             entries: [
                 { binding: 0, resource: { buffer: particleBuffer }},
-                { binding: 1, resource: { buffer: realBoxSizeBuffer }},
-                { binding: 2, resource: { buffer: sphParamsBuffer }},
+                { binding: 1, resource: { buffer: this.realBoxSizeBuffer }},
+                { binding: 2, resource: { buffer: this.sphParamsBuffer }},
             ],
         })
         this.copyPositionBindGroup = device.createBindGroup({
@@ -276,22 +269,34 @@ export class SPHSimulator {
             entries: [
                 { binding: 0, resource: { buffer: particleBuffer }},
                 { binding: 1, resource: { buffer: posvelBuffer }},
-                { binding: 2, resource: { buffer: sphParamsBuffer }},
+                { binding: 2, resource: { buffer: this.sphParamsBuffer }},
             ],
         })
 
+        this.particleBuffer = particleBuffer
+    }
 
-        console.log(environmentViews)
-
-        const particleData = this.initDambreak(initHalfBoxSize, 30000)
-        sphParamsViews.n.set([this.numParticles])
-        device.queue.writeBuffer(sphParamsBuffer, 0, sphParamsValues)
-        device.queue.writeBuffer(particleBuffer, 0, particleData)
+    reset(numParticles: number, initHalfBoxSize: number[]) {
+        const particleData = this.initDambreak(initHalfBoxSize, numParticles)
+        const realBoxSizeValues = new ArrayBuffer(12);
+        const realBoxSizeViews = {
+            xHalf: new Float32Array(realBoxSizeValues, 0, 1),
+            yHalf: new Float32Array(realBoxSizeValues, 4, 1),
+            zHalf: new Float32Array(realBoxSizeValues, 8, 1),
+        };
+        realBoxSizeViews.xHalf.set([initHalfBoxSize[0]]); 
+        realBoxSizeViews.yHalf.set([initHalfBoxSize[1]]); 
+        realBoxSizeViews.zHalf.set([initHalfBoxSize[2]]);
+        const numParticleValue = new Float32Array(1);
+        numParticleValue[0] = this.numParticles
+        console.log(this.numParticles)
+        this.device.queue.writeBuffer(this.sphParamsBuffer, 44, numParticleValue) // TODO : avoid hardcoding
+        this.device.queue.writeBuffer(this.particleBuffer, 0, particleData)
+        this.device.queue.writeBuffer(this.realBoxSizeBuffer, 0, realBoxSizeValues)
     }
 
     execute(commandEncoder: GPUCommandEncoder) {
         const computePass = commandEncoder.beginComputePass();
-
         for (let i = 0; i < 2; i++) {
             computePass.setBindGroup(0, this.gridClearBindGroup);
             computePass.setPipeline(this.gridClearPipeline);
