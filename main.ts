@@ -2,9 +2,9 @@ import { PrefixSumKernel } from 'webgpu-radix-sort';
 import { mat4 } from 'wgpu-matrix'
 
 import { Camera } from './camera'
-import { MLSMPMSimulator } from './mls-mpm/mls-mpm'
-import { SPHSimulator } from './sph/sph';
-import { renderUniformsViews, renderUniformsValues, numParticlesMax, particleStructSize } from './common'
+import { mlsmpmParticleStructSize, MLSMPMSimulator } from './mls-mpm/mls-mpm'
+import { SPHSimulator, sphParticleStructSize } from './sph/sph';
+import { renderUniformsViews, renderUniformsValues, numParticlesMax } from './common'
 import { FluidRenderer } from './render/fluidRender'
 
 /// <reference types="@webgpu/types" />
@@ -50,9 +50,6 @@ async function init() {
   return { canvas, device, presentationFormat, context }
 }
 
-const radius = 0.04; // どれくらいがいいかな
-const diameter = 2 * radius;
-
 async function main() {
   const { canvas, device, presentationFormat, context } = await init();
 
@@ -61,8 +58,6 @@ async function main() {
     format: presentationFormat,
     alphaMode: 'premultiplied',
   })
-
-  const fov = 60 * Math.PI / 180;
 
   let cubemapTexture: GPUTexture;
   {
@@ -110,9 +105,10 @@ async function main() {
   renderUniformsViews.texel_size.set([1.0 / canvas.width, 1.0 / canvas.height]);
 
   // storage buffer を作る
+  const maxParticleStructSize = Math.max(mlsmpmParticleStructSize, sphParticleStructSize)
   const particleBuffer = device.createBuffer({
     label: 'particles buffer', 
-    size: particleStructSize * numParticlesMax, 
+    size: maxParticleStructSize * numParticlesMax, // TODO : max をとる
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
   const posvelBuffer = device.createBuffer({
@@ -140,17 +136,23 @@ async function main() {
   // let currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE; 
   // let currentDistance = 30; 
 
+  let numParticleParams = [40000, 70000, 120000, 200000]
+  let initBoxSizes = [[35, 30, 45], [40, 30, 60], [45, 40, 60], [50, 50, 70]]
+  let initDistances = [60, 70, 80, 100]
+
   const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
-  const initDistance = 2.5
-  let initBoxSize = [1.0, 2.0, 1.0]
-  let realBoxSize = [...initBoxSize];
-  const sphSimulator = new SPHSimulator(particleBuffer, posvelBuffer, initBoxSize, diameter, device)
-  // {
-  //   initBoxSize = [45, 35, 70]
-  //   const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, initBoxSize, diameter, device)
-  // }
-  // const camera = new Camera(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], fov);
-  const camera = new Camera(canvasElement, initDistance, [0, -initBoxSize[1], 0], fov);
+  // const radius = 0.04; // どれくらいがいいかな
+  // const diameter = 2 * radius;
+  // const initDistance = 2.5
+  // let initBoxSize = [1.0, 2.0, 1.0]
+  // let realBoxSize = [...initBoxSize];
+  // const sphSimulator = new SPHSimulator(particleBuffer, posvelBuffer, initBoxSize, diameter, device)
+  // const camera = new Camera(canvasElement, initDistance, [0, -initBoxSize[1], 0], fov);
+
+  const fov = 45 * Math.PI / 180;
+  const radius = 0.6; // どれくらいがいいかな
+  const diameter = 2 * radius;
+  const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, diameter, device)
   
   const renderer = new FluidRenderer(device, canvas, presentationFormat, 
     radius, fov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
@@ -167,15 +169,13 @@ async function main() {
     }
   });
 
-  // // let boxSizeKey = ["10000", "20000", "30000", "40000", "100000"]
-  // let boxSizes = [
-  //   { xHalf: 0.7, yHalf: 2.0, zHalf: 0.7 }, 
-  //   { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0 }, 
-  //   { xHalf: 1.2, yHalf: 2.0, zHalf: 1.2 }, 
-  //   { xHalf: 1.4, yHalf: 2.0, zHalf: 1.4 }, 
-  //   { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
-  // ];
-
+  let boxSizes = [
+    { xHalf: 0.7, yHalf: 2.0, zHalf: 0.7 }, 
+    { xHalf: 1.0, yHalf: 2.0, zHalf: 1.0 }, 
+    { xHalf: 1.2, yHalf: 2.0, zHalf: 1.2 }, 
+    { xHalf: 1.4, yHalf: 2.0, zHalf: 1.4 }, 
+    { xHalf: 1.0, yHalf: 2.0, zHalf: 2.0 }
+  ];
   
   // let environment = {
   //   boxSize: boxSizes[1], 
@@ -190,6 +190,12 @@ async function main() {
     errorLog.textContent = reason;
   });
 
+  // はじめは mls-mpm
+  const initDistance = initDistances[1]
+  let initBoxSize = initBoxSizes[1]
+  let realBoxSize = [...initBoxSize];
+  mlsmpmSimulator.reset(numParticleParams[1], initBoxSizes[1])
+  const camera = new Camera(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 8, initBoxSize[2] / 2], fov);
 
   let ballFl = false;
   let t = 0;
@@ -198,24 +204,17 @@ async function main() {
     t += 0.01;
     const start = performance.now();
 
-    // if (pressed) { 
-    //   distanceParamsIndex = boxSizeKey.indexOf(pressedButton);
-    //   environment.boxSize = boxSizes[distanceParamsIndex];
-    //   environment.numParticles = parseInt(pressedButton);
-    //   currentXtheta = Math.PI / 4;
-    //   currentYtheta = -Math.PI / 12;
-    //   const particlesData = init_dambreak(constants.grid_res);
-    //   device.queue.writeBuffer(particlesBuffer, 0, particlesData);
-    //   currentDistance = distanceParams[distanceParamsIndex].INIT_DISTANCE;
-    //   let slider = document.getElementById("slider") as HTMLInputElement;
-    //   slider.value = "100";
-
-    //   console.log(distanceParams[distanceParamsIndex]);
-      
-    //   pressed = false;
-    // }
-
-
+    if (pressed) { 
+      const paramsIdx = parseInt(pressedButton);
+      initBoxSize = initBoxSizes[paramsIdx]
+      realBoxSize = [...initBoxSize]
+      console.log(initBoxSize, realBoxSize)
+      mlsmpmSimulator.reset(numParticleParams[paramsIdx], initBoxSize)
+      camera.reset(canvasElement, initDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], fov)
+      let slider = document.getElementById("slider") as HTMLInputElement;
+      slider.value = "100";
+      pressed = false;
+    } 
 
     // ボックスサイズの変更
     const slider = document.getElementById("slider") as HTMLInputElement;
@@ -225,25 +224,20 @@ async function main() {
     const minClosingSpeed = -0.007;
     const dVal = Math.max(curBoxWidthRatio - boxWidthRatio, minClosingSpeed);
     boxWidthRatio += dVal;
-    // sliderValue.textContent = curBoxWidthRatio.toFixed(2);
-    // realBoxSizeViews.xHalf.set([environment.boxSize.xHalf]);
-    // realBoxSizeViews.yHalf.set([environment.boxSize.yHalf]);
-    // realBoxSizeViews.zHalf.set([environment.boxSize.zHalf * boxWidthRatio]);
-    // device.queue.writeBuffer(realBoxSizeBuffer, 0, realBoxSizeValues);
 
     // 行列の更新
     realBoxSize[2] = initBoxSize[2] * boxWidthRatio;
-    // sphSimulator.changeBoxSize(realBoxSize)
+    mlsmpmSimulator.changeBoxSize(realBoxSize)
     device.queue.writeBuffer(renderUniformBuffer, 0, renderUniformsValues); // これもなくしたい
 
     const commandEncoder = device.createCommandEncoder()
 
     // 計算のためのパス
-    sphSimulator.execute(commandEncoder)
+    mlsmpmSimulator.execute(commandEncoder)
 
     // レンダリングのためのパス
     if (!ballFl) {
-      renderer.execute(context, commandEncoder, sphSimulator.numParticles)
+      renderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles)
     } else {
       // const ballPassEncoder = commandEncoder.beginRenderPass(ballPassDescriptor);
       // ballPassEncoder.setBindGroup(0, ballBindGroup);

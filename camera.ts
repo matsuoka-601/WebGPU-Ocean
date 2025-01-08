@@ -17,19 +17,7 @@ export class Camera {
     fov: number
 
     constructor (canvasElement: HTMLCanvasElement, initDistance: number, target: number[], fov: number) {
-        this.isDragging = false
-        this.prevX = 0
-        this.prevY = 0
-        this.currentXtheta = Math.PI / 4 * 1
-        this.currentYtheta = -Math.PI / 12
-        this.maxYTheta = 0
-        this.minYTheta = -0.99 * Math.PI / 2.
-        this.sensitivity = 0.005
-        this.currentDistance = initDistance
-        this.maxDistance = 2. * this.currentDistance
-        this.minDistance = 0.3 * this.currentDistance
-        this.target = target
-        this.fov = fov
+        this.reset(canvasElement, initDistance, target, fov)
 
         canvasElement.addEventListener("mousedown", (event: MouseEvent) => {
             this.isDragging = true;
@@ -40,7 +28,7 @@ export class Camera {
         canvasElement.addEventListener("wheel", (event: WheelEvent) => {
             event.preventDefault();
             var scrollDelta = event.deltaY;
-            this.currentDistance += ((scrollDelta > 0) ? 1 : -1) * 0.5;
+            this.currentDistance += ((scrollDelta > 0) ? 1 : -1) * 1.5;
             if (this.currentDistance < this.minDistance) this.currentDistance = this.minDistance;
             if (this.currentDistance > this.maxDistance) this.currentDistance = this.maxDistance;  
             this.recalculateView()
@@ -65,6 +53,22 @@ export class Camera {
         canvasElement.addEventListener("mouseup", () => {
             if (this.isDragging) this.isDragging = false;
         });
+    }
+
+    reset(canvasElement: HTMLCanvasElement, initDistance: number, target: number[], fov: number) {
+        this.isDragging = false
+        this.prevX = 0
+        this.prevY = 0
+        this.currentXtheta = Math.PI / 4 * 1
+        this.currentYtheta = -Math.PI / 12
+        this.maxYTheta = 0
+        this.minYTheta = -0.99 * Math.PI / 2.
+        this.sensitivity = 0.005
+        this.currentDistance = initDistance
+        this.maxDistance = 2. * this.currentDistance
+        this.minDistance = 0.3 * this.currentDistance
+        this.target = target
+        this.fov = fov
 
         const aspect = canvasElement.clientWidth / canvasElement.clientHeight
         const projection = mat4.perspective(fov, aspect, 0.1, 500) // TODO : ここの max を変える

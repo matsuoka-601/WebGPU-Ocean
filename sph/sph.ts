@@ -10,7 +10,7 @@ import { PrefixSumKernel } from 'webgpu-radix-sort';
 
 import { renderUniformsViews, numParticlesMax } from '../common';
 
-const particleStructSize = 64
+export const sphParticleStructSize = 64
 
 export class SPHSimulator {
     device: GPUDevice
@@ -188,7 +188,7 @@ export class SPHSimulator {
         })
         const targetParticlesBuffer = device.createBuffer({
             label: 'target particles buffer', 
-            size: particleStructSize * numParticlesMax, 
+            size: sphParticleStructSize * numParticlesMax, 
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
         const particleCellOffsetBuffer = device.createBuffer({
@@ -283,7 +283,7 @@ export class SPHSimulator {
 
         console.log(environmentViews)
 
-        const particleData = this.initDambreak(initHalfBoxSize, 20000)
+        const particleData = this.initDambreak(initHalfBoxSize, 30000)
         sphParamsViews.n.set([this.numParticles])
         device.queue.writeBuffer(sphParamsBuffer, 0, sphParamsValues)
         device.queue.writeBuffer(particleBuffer, 0, particleData)
@@ -328,7 +328,7 @@ export class SPHSimulator {
     }
 
     initDambreak(initHalfBoxSize: number[], numParticles: number) {
-        let particlesBuf = new ArrayBuffer(particleStructSize * numParticles);
+        let particlesBuf = new ArrayBuffer(sphParticleStructSize * numParticles);
         this.numParticles = 0;
         const DIST_FACTOR = 0.5
       
@@ -336,7 +336,7 @@ export class SPHSimulator {
             for (var x = -0.95 * initHalfBoxSize[0]; x < 0.95 * initHalfBoxSize[0] && this.numParticles < numParticles; x += DIST_FACTOR * this.kernelRadius) {
                 for (var z = -0.95 * initHalfBoxSize[2]; z < 0 * initHalfBoxSize[2] && this.numParticles < numParticles; z += DIST_FACTOR * this.kernelRadius) {
                     let jitter = 0.001 * Math.random();
-                    const offset = particleStructSize * this.numParticles;
+                    const offset = sphParticleStructSize * this.numParticles;
                     const particleViews = {
                         position: new Float32Array(particlesBuf, offset + 0, 3),
                         v: new Float32Array(particlesBuf, offset + 16, 3),

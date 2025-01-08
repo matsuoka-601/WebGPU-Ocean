@@ -3,8 +3,11 @@ import p2g_1 from './p2g_1.wgsl';
 import p2g_2 from './p2g_2.wgsl';
 import updateGrid from './updateGrid.wgsl';
 import g2p from './g2p.wgsl';
+import copyPosition from './copyPosition.wgsl'
 
-import { particleStructSize, numParticlesMax, renderUniformsViews } from '../common';
+import { numParticlesMax, renderUniformsViews } from '../common';
+
+export const mlsmpmParticleStructSize = 80
 
 export class MLSMPMSimulator {
     max_x_grids = 64;
@@ -21,16 +24,21 @@ export class MLSMPMSimulator {
     p2g2Pipeline: GPUComputePipeline
     updateGridPipeline: GPUComputePipeline
     g2pPipeline: GPUComputePipeline
+    copyPositionPipeline: GPUComputePipeline
 
     clearGridBindGroup: GPUBindGroup
     p2g1BindGroup: GPUBindGroup
     p2g2BindGroup: GPUBindGroup
     updateGridBindGroup: GPUBindGroup
     g2pBindGroup: GPUBindGroup
+    copyPositionBindGroup: GPUBindGroup
+
+    particleBuffer: GPUBuffer
 
     device: GPUDevice
 
-    constructor (particleBuffer: GPUBuffer, initBoxSize: number[], diameter: number, device: GPUDevice) {
+    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, diameter: number, device: GPUDevice) 
+    {
         this.device = device
         renderUniformsViews.sphere_size.set([diameter])
         const clearGridModule = device.createShaderModule({ code: clearGrid });
@@ -38,6 +46,7 @@ export class MLSMPMSimulator {
         const p2g2Module = device.createShaderModule({ code: p2g_2 });
         const updateGridModule = device.createShaderModule({ code: updateGrid });
         const g2pModule = device.createShaderModule({ code: g2p });
+        const copyPositionModule = device.createShaderModule({ code: copyPosition });
 
         const constants = {
             stiffness: 3., 
@@ -100,19 +109,17 @@ export class MLSMPMSimulator {
                 }, 
             }
         });
+        this.copyPositionPipeline = device.createComputePipeline({
+            label: "copy position pipeline", 
+            layout: 'auto', 
+            compute: {
+                module: copyPositionModule, 
+            }
+        });
 
         const maxGridCount = this.max_x_grids * this.max_y_grids * this.max_z_grids;
-        this.gridCount = Math.ceil(initBoxSize[0]) * Math.ceil(initBoxSize[1]) * Math.ceil(initBoxSize[2]);
-        if (this.gridCount > maxGridCount) {
-            throw new Error("gridCount should be equal to or less than maxGridCount")
-        }
-
         const realBoxSizeValues = new ArrayBuffer(12);
-        const realBoxSizeViews = new Float32Array(realBoxSizeValues);
         const initBoxSizeValues = new ArrayBuffer(12);
-        const initBoxSizeViews = new Float32Array(initBoxSizeValues);
-        initBoxSizeViews.set(initBoxSize);    
-        realBoxSizeViews.set(initBoxSize); // 最初は同じ
 
         const cellBuffer = device.createBuffer({ 
             label: 'cells buffer', 
@@ -172,29 +179,31 @@ export class MLSMPMSimulator {
                 { binding: 3, resource: { buffer: this.initBoxSizeBuffer }},
             ],
         })
+        this.copyPositionBindGroup = device.createBindGroup({
+            layout: this.copyPositionPipeline.getBindGroupLayout(0),
+            entries: [
+                { binding: 0, resource: { buffer: particleBuffer }}, 
+                { binding: 1, resource: { buffer: posvelBuffer }}, 
+            ]
+        })
 
-        const particleData = this.initDambreak(initBoxSize);
-        device.queue.writeBuffer(particleBuffer, 0, particleData)
-        console.log(this.numParticles)
+        this.particleBuffer = particleBuffer
     }
 
-    initDambreak(initBoxSize: number[]) {
-        let particlesBuf = new ArrayBuffer(particleStructSize * numParticlesMax);
+    initDambreak(initBoxSize: number[], numParticles: number) {
+        let particlesBuf = new ArrayBuffer(mlsmpmParticleStructSize * numParticlesMax);
         const spacing = 0.60;
 
         this.numParticles = 0;
         
-        for (let j = 0; j < initBoxSize[1] * 0.80; j += spacing) {
-            for (let i = 3; i < initBoxSize[0] - 4; i += spacing) {
-                for (let k = 3; k < initBoxSize[2] / 4; k += spacing) {
-                    const offset = particleStructSize * this.numParticles;
+        for (let j = 0; j < initBoxSize[1] * 0.80 && this.numParticles < numParticles; j += spacing) {
+            for (let i = 3; i < initBoxSize[0] - 4 && this.numParticles < numParticles; i += spacing) {
+                for (let k = 3; k < initBoxSize[2] / 2 && this.numParticles < numParticles; k += spacing) {
+                    const offset = mlsmpmParticleStructSize * this.numParticles;
                     const particleViews = {
                         position: new Float32Array(particlesBuf, offset + 0, 3),
                         v: new Float32Array(particlesBuf, offset + 16, 3),
                         C: new Float32Array(particlesBuf, offset + 32, 12),
-                        force: new Float32Array(particlesBuf, offset + 80, 3),
-                        density: new Float32Array(particlesBuf, offset + 92, 1),
-                        nearDensity: new Float32Array(particlesBuf, offset + 96, 1),
                     };
                     const jitter = 2.0 * Math.random();
                     particleViews.position.set([i + jitter, j + jitter, k + jitter]);
@@ -203,12 +212,31 @@ export class MLSMPMSimulator {
             }
         }
         
-        let particles = new ArrayBuffer(particleStructSize * this.numParticles);
+        let particles = new ArrayBuffer(mlsmpmParticleStructSize * this.numParticles);
         const oldView = new Uint8Array(particlesBuf);
         const newView = new Uint8Array(particles);
         newView.set(oldView.subarray(0, newView.length));
         
         return particles;
+    }
+
+    reset(numParticles: number, initBoxSize: number[]) {
+        const particleData = this.initDambreak(initBoxSize, numParticles);
+        const maxGridCount = this.max_x_grids * this.max_y_grids * this.max_z_grids;
+        this.gridCount = Math.ceil(initBoxSize[0]) * Math.ceil(initBoxSize[1]) * Math.ceil(initBoxSize[2]);
+        if (this.gridCount > maxGridCount) {
+            throw new Error("gridCount should be equal to or less than maxGridCount")
+        }
+        const realBoxSizeValues = new ArrayBuffer(12);
+        const realBoxSizeViews = new Float32Array(realBoxSizeValues);
+        const initBoxSizeValues = new ArrayBuffer(12);
+        const initBoxSizeViews = new Float32Array(initBoxSizeValues);
+        initBoxSizeViews.set(initBoxSize);    
+        realBoxSizeViews.set(initBoxSize); 
+        this.device.queue.writeBuffer(this.initBoxSizeBuffer, 0, initBoxSizeValues);
+        this.device.queue.writeBuffer(this.realBoxSizeBuffer, 0, realBoxSizeValues);
+        this.device.queue.writeBuffer(this.particleBuffer, 0, particleData)
+        console.log(this.numParticles)
     }
 
     execute(commandEncoder: GPUCommandEncoder) {
@@ -229,6 +257,9 @@ export class MLSMPMSimulator {
             computePass.setBindGroup(0, this.g2pBindGroup)
             computePass.setPipeline(this.g2pPipeline)
             computePass.dispatchWorkgroups(Math.ceil(this.numParticles / 64)) 
+            computePass.setBindGroup(0, this.copyPositionBindGroup)
+            computePass.setPipeline(this.copyPositionPipeline)
+            computePass.dispatchWorkgroups(Math.ceil(this.numParticles / 64))             
         }
         computePass.end()
     }

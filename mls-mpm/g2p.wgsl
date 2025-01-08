@@ -2,9 +2,6 @@ struct Particle {
     position: vec3f, 
     v: vec3f, 
     C: mat3x3f, 
-    force: vec3f, 
-    density: f32, 
-    nearDensity: f32, 
 }
 struct Cell {
     vx: i32, 
