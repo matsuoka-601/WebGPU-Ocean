@@ -115,6 +115,11 @@ async function main() {
     size: particleStructSize * numParticlesMax, 
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   })
+  const posvelBuffer = device.createBuffer({
+    label: 'position buffer', 
+    size: 32 * numParticlesMax,  // 32 = 2 x vec3f + padding
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  })
   const renderUniformBuffer = device.createBuffer({
     label: 'filter uniform buffer', 
     size: renderUniformsValues.byteLength, 
@@ -136,10 +141,10 @@ async function main() {
   // let currentDistance = 30; 
 
   const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
-  const initDistance = 3
+  const initDistance = 2.5
   let initBoxSize = [1.0, 2.0, 1.0]
   let realBoxSize = [...initBoxSize];
-  const sphSimulator = new SPHSimulator(particleBuffer, initBoxSize, diameter, device)
+  const sphSimulator = new SPHSimulator(particleBuffer, posvelBuffer, initBoxSize, diameter, device)
   // {
   //   initBoxSize = [45, 35, 70]
   //   const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, initBoxSize, diameter, device)
@@ -148,7 +153,7 @@ async function main() {
   const camera = new Camera(canvasElement, initDistance, [0, -initBoxSize[1], 0], fov);
   
   const renderer = new FluidRenderer(device, canvas, presentationFormat, 
-    radius, fov, particleBuffer, renderUniformBuffer, cubemapTextureView)
+    radius, fov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
 
   // ボタン押下の監視
   let form = document.getElementById('number-button') as HTMLFormElement;

@@ -4,6 +4,7 @@ import reorderParticles from './grid/reorderParticles.wgsl'
 import density from './density.wgsl'
 import force from './force.wgsl'
 import integrate from './integrate.wgsl'
+import copyPosition from './copyPosition.wgsl'
 
 import { PrefixSumKernel } from 'webgpu-radix-sort';
 
@@ -20,6 +21,7 @@ export class SPHSimulator {
     densityPipeline: GPUComputePipeline
     forcePipeline: GPUComputePipeline
     integratePipeline: GPUComputePipeline
+    copyPositionPipeline: GPUComputePipeline
 
     gridClearBindGroup: GPUBindGroup
     gridBuildBindGroup: GPUBindGroup
@@ -27,6 +29,7 @@ export class SPHSimulator {
     densityBindGroup: GPUBindGroup
     forceBindGroup: GPUBindGroup
     integrateBindGroup: GPUBindGroup
+    copyPositionBindGroup: GPUBindGroup
 
     cellParticleCountBuffer: GPUBuffer
 
@@ -36,7 +39,7 @@ export class SPHSimulator {
     numParticles = 0
     gridCount = 0
 
-    constructor (particleBuffer: GPUBuffer, initHalfBoxSize: number[], diameter: number, device: GPUDevice) {
+    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, initHalfBoxSize: number[], diameter: number, device: GPUDevice) {
         this.device = device
         renderUniformsViews.sphere_size.set([diameter])
         const densityModule = device.createShaderModule({ code: density })
@@ -45,6 +48,7 @@ export class SPHSimulator {
         const gridBuildModule = device.createShaderModule({ code: gridBuild })
         const gridClearModule = device.createShaderModule({ code: gridClear })
         const reorderParticlesModule = device.createShaderModule({ code: reorderParticles })
+        const copyPositionModule = device.createShaderModule({ code: copyPosition })
 
         const cellSize = 1.0 * this.kernelRadius
         const xHalfMax = 2.0
@@ -108,6 +112,13 @@ export class SPHSimulator {
             layout: 'auto', 
             compute: {
               module: integrateModule, 
+            }
+        });
+        this.copyPositionPipeline = device.createComputePipeline({
+            label: "copy position pipeline", 
+            layout: 'auto', 
+            compute: {
+              module: copyPositionModule, 
             }
         });
 
@@ -260,10 +271,19 @@ export class SPHSimulator {
                 { binding: 2, resource: { buffer: sphParamsBuffer }},
             ],
         })
+        this.copyPositionBindGroup = device.createBindGroup({
+            layout: this.copyPositionPipeline.getBindGroupLayout(0),
+            entries: [
+                { binding: 0, resource: { buffer: particleBuffer }},
+                { binding: 1, resource: { buffer: posvelBuffer }},
+                { binding: 2, resource: { buffer: sphParamsBuffer }},
+            ],
+        })
+
 
         console.log(environmentViews)
 
-        const particleData = this.initDambreak(initHalfBoxSize, 30000)
+        const particleData = this.initDambreak(initHalfBoxSize, 20000)
         sphParamsViews.n.set([this.numParticles])
         device.queue.writeBuffer(sphParamsBuffer, 0, sphParamsValues)
         device.queue.writeBuffer(particleBuffer, 0, particleData)
@@ -299,6 +319,9 @@ export class SPHSimulator {
             computePass.setBindGroup(0, this.integrateBindGroup)
             computePass.setPipeline(this.integratePipeline)
             computePass.dispatchWorkgroups(Math.ceil(this.numParticles / 64)) 
+            computePass.setBindGroup(0, this.copyPositionBindGroup)
+            computePass.setPipeline(this.copyPositionPipeline)
+            computePass.dispatchWorkgroups(Math.ceil(this.numParticles / 64))
         }
 
         computePass.end()

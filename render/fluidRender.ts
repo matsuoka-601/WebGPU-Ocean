@@ -33,8 +33,8 @@ export class FluidRenderer {
     device: GPUDevice
     constructor(
         device: GPUDevice, canvas: HTMLCanvasElement, presentationFormat: GPUTextureFormat,
-        radius: number, fov: number, particleBuffer: GPUBuffer, renderUniformBuffer: GPUBuffer, 
-        cubemapTextureView: GPUTextureView
+        radius: number, fov: number, posvelBuffer: GPUBuffer, 
+        renderUniformBuffer: GPUBuffer, cubemapTextureView: GPUTextureView
     ) {
         this.device = device
         const maxFilterSize = 100
@@ -251,7 +251,7 @@ export class FluidRenderer {
             label: 'depth map bind group', 
             layout: this.depthMapPipeline.getBindGroupLayout(0),  
             entries: [
-              { binding: 0, resource: { buffer: particleBuffer }},
+              { binding: 0, resource: { buffer: posvelBuffer }},
               { binding: 1, resource: { buffer: renderUniformBuffer }},
             ]
         })
@@ -280,7 +280,7 @@ export class FluidRenderer {
             label: 'thickness map bind group', 
             layout: this.thicknessMapPipeline.getBindGroupLayout(0),
             entries: [
-                { binding: 0, resource: { buffer: particleBuffer }},
+                { binding: 0, resource: { buffer: posvelBuffer }},
                 { binding: 1, resource: { buffer: renderUniformBuffer }},
             ],
         })
@@ -322,7 +322,7 @@ export class FluidRenderer {
             label: 'ball bind group', 
             layout: this.spherePipeline.getBindGroupLayout(0),  
             entries: [
-                { binding: 0, resource: { buffer: particleBuffer }},
+                { binding: 0, resource: { buffer: posvelBuffer }},
                 { binding: 1, resource: { buffer: renderUniformBuffer }},
             ]
         })

@@ -23,16 +23,12 @@ struct RenderUniforms {
     inv_view_matrix: mat4x4f, 
 }
 
-struct Particle {
+struct PosVel {
     position: vec3f, 
     v: vec3f, 
-    // C: mat3x3f, 
-    force: vec3f, 
-    density: f32, 
-    nearDensity: f32, 
 }
 
-@group(0) @binding(0) var<storage> particles: array<Particle>;
+@group(0) @binding(0) var<storage> particles: array<PosVel>;
 @group(0) @binding(1) var<uniform> uniforms: RenderUniforms;
 
 @vertex
