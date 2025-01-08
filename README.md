@@ -20,7 +20,7 @@ Below is the simulation of 100,000 particles. The simulation is run on a laptop 
 https://github.com/user-attachments/assets/03913ab7-a27f-4701-a5a6-95c977c1825a
 
 ## TODO
-- Implement MLS-MPM
+- Implement MLS-MPM ⇒ **Currently implementing in `mls-mpm` branch and it will soon be available!**
   - Currently, the bottleneck of the simulation is the neighborhood search in SPH. Therefore, implementing MLS-MPM would allow us to handle even larger real-time simulation (with > 100,000 particles?) since it doesn't require neighborhood search.
   - Now I'm actively learning MLS-MPM. But it will be harder than learning classical SPH, so any help would be appreciated :)
 - Implement a rendering method described in [Unified Spray, Foam and Bubbles for Particle-Based Fluids](https://cg.informatik.uni-freiburg.de/publications/2012_CGI_sprayFoamBubbles.pdf)
