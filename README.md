@@ -12,7 +12,6 @@ The following are the characteristics of the simulation.
   - You can enable SPH simulation by clicking "SPH" button on the top right.
   - For **fast neighborhood search on GPU**, an algorithm described in [FAST FIXED-RADIUS NEAREST NEIGHBORS: INTERACTIVE MILLION-PARTICLE FLUIDS](https://ramakarl.com/pdfs/2014_Hoetzlein_FastFixedRadius_Neighbors.pdf) is used. 
 - **Screen-Space Rendering** described in [GDC 2010 slide](https://developer.download.nvidia.com/presentations/2010/gdc/Direct3D_Effects.pdf) is used for real-time rendering of the fluid.
-  - Vertex/fragment shader is used for implementing Screen-Space Rendering.
 ## Implementation details of MLS-MPM
 Initially the simulation in this project was based on **Smoothed Particle Hydrodynamics (SPH)**. However, since the neighborhood search is really expensive, the maximum number of particles that can be simulated in real-time was 30,000 at best on integrated graphics. So I decided to implement **Moving Least Squares Material Point Method (MLS-MPM)** which is completely free from neighborhood search. The results were very good, enabling real-time simulations of **~100,000 particles on integrated graphics** and **~300,000 particles on decent GPUs.**
 
