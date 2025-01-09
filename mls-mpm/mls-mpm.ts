@@ -37,10 +37,12 @@ export class MLSMPMSimulator {
 
     device: GPUDevice
 
-    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, diameter: number, device: GPUDevice) 
+    renderDiameter: number
+
+    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, renderDiameter: number, device: GPUDevice) 
     {
         this.device = device
-        renderUniformsViews.sphere_size.set([diameter])
+        this.renderDiameter = renderDiameter
         const clearGridModule = device.createShaderModule({ code: clearGrid });
         const p2g1Module = device.createShaderModule({ code: p2g_1 });
         const p2g2Module = device.createShaderModule({ code: p2g_2 });
@@ -192,7 +194,7 @@ export class MLSMPMSimulator {
 
     initDambreak(initBoxSize: number[], numParticles: number) {
         let particlesBuf = new ArrayBuffer(mlsmpmParticleStructSize * numParticlesMax);
-        const spacing = 0.60;
+        const spacing = 0.65;
 
         this.numParticles = 0;
         
@@ -221,6 +223,7 @@ export class MLSMPMSimulator {
     }
 
     reset(numParticles: number, initBoxSize: number[]) {
+        renderUniformsViews.sphere_size.set([this.renderDiameter])
         const particleData = this.initDambreak(initBoxSize, numParticles);
         const maxGridCount = this.max_x_grids * this.max_y_grids * this.max_z_grids;
         this.gridCount = Math.ceil(initBoxSize[0]) * Math.ceil(initBoxSize[1]) * Math.ceil(initBoxSize[2]);

@@ -42,9 +42,11 @@ export class SPHSimulator {
     numParticles = 0
     gridCount = 0
 
-    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, diameter: number, device: GPUDevice) {
+    renderDiameter: number
+
+    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, renderDiameter: number, device: GPUDevice) {
         this.device = device
-        renderUniformsViews.sphere_size.set([diameter])
+        this.renderDiameter = renderDiameter
         const densityModule = device.createShaderModule({ code: density })
         const forceModule = device.createShaderModule({ code: force })
         const integrateModule = device.createShaderModule({ code: integrate })
@@ -277,6 +279,7 @@ export class SPHSimulator {
     }
 
     reset(numParticles: number, initHalfBoxSize: number[]) {
+        renderUniformsViews.sphere_size.set([this.renderDiameter])
         const particleData = this.initDambreak(initHalfBoxSize, numParticles)
         const realBoxSizeValues = new ArrayBuffer(12);
         const realBoxSizeViews = {
