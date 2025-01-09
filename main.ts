@@ -100,6 +100,7 @@ async function main() {
 	const cubemapTextureView = cubemapTexture.createView({
 		dimension: 'cube',
 	});
+	console.log("cubemap initialization done")
 
 	// uniform buffer を作る
 	renderUniformsViews.texel_size.set([1.0 / canvas.width, 1.0 / canvas.height]);
