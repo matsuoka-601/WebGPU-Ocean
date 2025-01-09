@@ -52,6 +52,8 @@ async function init() {
 async function main() {
 	const { canvas, device, presentationFormat, context } = await init();
 
+	console.log("initialization done")
+
 	context.configure({
 		device,
 		format: presentationFormat,
@@ -120,6 +122,8 @@ async function main() {
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	})
 
+	console.log("buffer allocating done")
+
 	let mlsmpmNumParticleParams = [40000, 70000, 120000, 200000]
 	let mlsmpmInitBoxSizes = [[35, 25, 55], [40, 30, 60], [45, 40, 80], [50, 50, 80]]
 	let mlsmpmInitDistances = [60, 70, 90, 100]
@@ -142,6 +146,8 @@ async function main() {
 
 	const mlsmpmRenderer = new FluidRenderer(device, canvas, presentationFormat, mlsmpmRadius, mlsmpmFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
 	const sphRenderer = new FluidRenderer(device, canvas, presentationFormat, sphRadius, sphFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
+
+	console.log("simulator initialization done")
 
 	const camera = new Camera(canvasElement);
 
@@ -196,6 +202,8 @@ async function main() {
 	let sphereRenderFl = false
 	let sphFl = false
 	let boxWidthRatio = 1.
+
+	console.log("simulation start")
 	async function frame() {
 		const start = performance.now();
 
