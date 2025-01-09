@@ -1,11 +1,12 @@
 @group(0) @binding(0) var texture_sampler: sampler;
 @group(0) @binding(1) var texture: texture_2d<f32>;
-@group(0) @binding(2) var<uniform> uniforms: FluidUniforms;
+@group(0) @binding(2) var<uniform> uniforms: RenderUniforms;
 @group(0) @binding(3) var thickness_texture: texture_2d<f32>;
 @group(0) @binding(4) var envmap_texture: texture_cube<f32>;
 
-struct FluidUniforms {
+struct RenderUniforms {
     texel_size: vec2f, 
+    sphere_size: f32, 
     inv_projection_matrix: mat4x4f, 
     projection_matrix: mat4x4f, 
     view_matrix: mat4x4f, 
@@ -59,7 +60,7 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
 
     var normal: vec3f = -normalize(cross(ddx, ddy)); 
     var rayDir = normalize(viewPos);
-    var lightDir = normalize((uniforms.view_matrix * vec4f(1, 1, 1, 0.)).xyz);
+    var lightDir = normalize((uniforms.view_matrix * vec4f(0, 0, -1, 0.)).xyz);
     var H: vec3f        = normalize(lightDir - rayDir);
     var specular: f32   = pow(max(0.0, dot(H, normal)), 250.);
     var diffuse: f32  = max(0.0, dot(lightDir, normal)) * 1.0;
@@ -72,7 +73,7 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
     var refractionColor: vec3f = bgColor * transmittance;
 
     let F0 = 0.02;
-    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 0.3);
+    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 1.0);
 
     var reflectionDir: vec3f = reflect(rayDir, normal);
     var reflectionDirWorld: vec3f = (uniforms.inv_view_matrix * vec4f(reflectionDir, 0.0)).xyz;
