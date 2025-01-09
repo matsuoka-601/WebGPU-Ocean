@@ -329,15 +329,17 @@ export class FluidRenderer {
     }
 
 
-    execute(context: GPUCanvasContext, commandEncoder: GPUCommandEncoder, numParticles: number) {
+    execute(context: GPUCanvasContext, commandEncoder: GPUCommandEncoder, 
+        numParticles: number, sphereRenderFl: boolean) 
+    {
         // これらも前もって作っておけるんじゃないか？
         const depthMapPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [
                 {
-                view: this.depthMapTextureView,
-                clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-                loadOp: 'clear',
-                storeOp: 'store',
+                    view: this.depthMapTextureView,
+                    clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store',
                 },
             ],
             depthStencilAttachment: {
@@ -352,7 +354,7 @@ export class FluidRenderer {
             {
                 colorAttachments: [
                     {
-                        view: this.tmpDepthMapTextureView, // 一時領域へ書き込み
+                        view: this.tmpDepthMapTextureView, 
                         clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                         loadOp: 'clear',
                         storeOp: 'store',
@@ -362,7 +364,7 @@ export class FluidRenderer {
             {
                 colorAttachments: [
                     {
-                        view: this.depthMapTextureView, // Y のパスはもとに戻す
+                        view: this.depthMapTextureView, 
                         clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                         loadOp: 'clear',
                         storeOp: 'store',
@@ -374,7 +376,7 @@ export class FluidRenderer {
         const thicknessMapPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [
                 {
-                    view: this.thicknessTextureView, // 変える
+                    view: this.thicknessTextureView, 
                     clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
                     loadOp: 'clear',
                     storeOp: 'store',
@@ -433,48 +435,55 @@ export class FluidRenderer {
             },
         }
 
-
-        const depthMapPassEncoder = commandEncoder.beginRenderPass(depthMapPassDescriptor);
-        depthMapPassEncoder.setBindGroup(0, this.depthMapBindGroup);
-        depthMapPassEncoder.setPipeline(this.depthMapPipeline);
-        depthMapPassEncoder.draw(6, numParticles);
-        depthMapPassEncoder.end();
-        for (var iter = 0; iter < 4; iter++) {
-            const depthFilterPassEncoderX = commandEncoder.beginRenderPass(depthFilterPassDescriptors[0]);
-            depthFilterPassEncoderX.setBindGroup(0, this.depthFilterBindGroups[0]);
-            depthFilterPassEncoderX.setPipeline(this.depthFilterPipeline);
-            depthFilterPassEncoderX.draw(6);
-            depthFilterPassEncoderX.end();  
-            const filterPassEncoderY = commandEncoder.beginRenderPass(depthFilterPassDescriptors[1]);
-            filterPassEncoderY.setBindGroup(0, this.depthFilterBindGroups[1]);
-            filterPassEncoderY.setPipeline(this.depthFilterPipeline);
-            filterPassEncoderY.draw(6);
-            filterPassEncoderY.end();  
+        if (!sphereRenderFl) {
+            const depthMapPassEncoder = commandEncoder.beginRenderPass(depthMapPassDescriptor);
+            depthMapPassEncoder.setBindGroup(0, this.depthMapBindGroup);
+            depthMapPassEncoder.setPipeline(this.depthMapPipeline);
+            depthMapPassEncoder.draw(6, numParticles);
+            depthMapPassEncoder.end();
+            for (var iter = 0; iter < 4; iter++) {
+                const depthFilterPassEncoderX = commandEncoder.beginRenderPass(depthFilterPassDescriptors[0]);
+                depthFilterPassEncoderX.setBindGroup(0, this.depthFilterBindGroups[0]);
+                depthFilterPassEncoderX.setPipeline(this.depthFilterPipeline);
+                depthFilterPassEncoderX.draw(6);
+                depthFilterPassEncoderX.end();  
+                const filterPassEncoderY = commandEncoder.beginRenderPass(depthFilterPassDescriptors[1]);
+                filterPassEncoderY.setBindGroup(0, this.depthFilterBindGroups[1]);
+                filterPassEncoderY.setPipeline(this.depthFilterPipeline);
+                filterPassEncoderY.draw(6);
+                filterPassEncoderY.end();  
+            }
+        
+            const thicknessMapPassEncoder = commandEncoder.beginRenderPass(thicknessMapPassDescriptor);
+            thicknessMapPassEncoder.setBindGroup(0, this.thicknessMapBindGroup);
+            thicknessMapPassEncoder.setPipeline(this.thicknessMapPipeline);
+            thicknessMapPassEncoder.draw(6, numParticles);
+            thicknessMapPassEncoder.end();
+        
+            for (var iter = 0; iter < 1; iter++) { // 多いか？
+                const thicknessFilterPassEncoderX = commandEncoder.beginRenderPass(thicknessFilterPassDescriptors[0]);
+                thicknessFilterPassEncoderX.setBindGroup(0, this.thicknessFilterBindGroups[0]);
+                thicknessFilterPassEncoderX.setPipeline(this.thicknessFilterPipeline);
+                thicknessFilterPassEncoderX.draw(6);
+                thicknessFilterPassEncoderX.end(); 
+                const thicknessFilterPassEncoderY = commandEncoder.beginRenderPass(thicknessFilterPassDescriptors[1]);
+                thicknessFilterPassEncoderY.setBindGroup(0, this.thicknessFilterBindGroups[1]);
+                thicknessFilterPassEncoderY.setPipeline(this.thicknessFilterPipeline);
+                thicknessFilterPassEncoderY.draw(6);
+                thicknessFilterPassEncoderY.end(); 
+            }
+      
+            const fluidPassEncoder = commandEncoder.beginRenderPass(fluidPassDescriptor);
+            fluidPassEncoder.setBindGroup(0, this.fluidBindGroup);
+            fluidPassEncoder.setPipeline(this.fluidPipeline);
+            fluidPassEncoder.draw(6);
+            fluidPassEncoder.end();
+        } else {
+            const spherePassEncoder = commandEncoder.beginRenderPass(spherePassDescriptor);
+            spherePassEncoder.setBindGroup(0, this.sphereBindGroup);
+            spherePassEncoder.setPipeline(this.spherePipeline);
+            spherePassEncoder.draw(6, numParticles);
+            spherePassEncoder.end();
         }
-    
-        const thicknessMapPassEncoder = commandEncoder.beginRenderPass(thicknessMapPassDescriptor);
-        thicknessMapPassEncoder.setBindGroup(0, this.thicknessMapBindGroup);
-        thicknessMapPassEncoder.setPipeline(this.thicknessMapPipeline);
-        thicknessMapPassEncoder.draw(6, numParticles);
-        thicknessMapPassEncoder.end();
-    
-        for (var iter = 0; iter < 1; iter++) { // 多いか？
-            const thicknessFilterPassEncoderX = commandEncoder.beginRenderPass(thicknessFilterPassDescriptors[0]);
-            thicknessFilterPassEncoderX.setBindGroup(0, this.thicknessFilterBindGroups[0]);
-            thicknessFilterPassEncoderX.setPipeline(this.thicknessFilterPipeline);
-            thicknessFilterPassEncoderX.draw(6);
-            thicknessFilterPassEncoderX.end(); 
-            const thicknessFilterPassEncoderY = commandEncoder.beginRenderPass(thicknessFilterPassDescriptors[1]);
-            thicknessFilterPassEncoderY.setBindGroup(0, this.thicknessFilterBindGroups[1]);
-            thicknessFilterPassEncoderY.setPipeline(this.thicknessFilterPipeline);
-            thicknessFilterPassEncoderY.draw(6);
-            thicknessFilterPassEncoderY.end(); 
-        }
-  
-        const fluidPassEncoder = commandEncoder.beginRenderPass(fluidPassDescriptor);
-        fluidPassEncoder.setBindGroup(0, this.fluidBindGroup);
-        fluidPassEncoder.setPipeline(this.fluidPipeline);
-        fluidPassEncoder.draw(6);
-        fluidPassEncoder.end();
     }
 }

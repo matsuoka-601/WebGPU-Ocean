@@ -132,10 +132,12 @@ async function main() {
 	const mlsmpmFov = 45 * Math.PI / 180
 	const mlsmpmRadius = 0.6 
 	const mlsmpmDiameter = 2 * mlsmpmRadius
+	const mlsmpmZoomRate = 1.5
 	const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, mlsmpmDiameter, device)
 	const sphFov = 45 * Math.PI / 180
 	const sphRadius = 0.04
 	const sphDiameter = 2 * sphRadius
+	const sphZoomRate = 0.05
 	const sphSimulator = new SPHSimulator(particleBuffer, posvelBuffer, sphDiameter, device)
 
 	const mlsmpmRenderer = new FluidRenderer(device, canvas, presentationFormat, mlsmpmRadius, mlsmpmFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
@@ -183,14 +185,15 @@ async function main() {
 	let initBoxSize = mlsmpmInitBoxSizes[1]
 	let realBoxSize = [...initBoxSize];
 	mlsmpmSimulator.reset(mlsmpmNumParticleParams[1], mlsmpmInitBoxSizes[1])
-	camera.reset(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], mlsmpmFov)
+	camera.reset(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], 
+		mlsmpmFov, mlsmpmZoomRate)
 
 	smallValue.textContent = "40,000"
 	mediumValue.textContent = "70,000"
 	largeValue.textContent = "120,000"
 	veryLargeValue.textContent = "200,000"
 
-	let ballFl = false
+	let sphereRenderFl = false
 	let sphFl = false
 	let boxWidthRatio = 1.
 	async function frame() {
@@ -219,11 +222,13 @@ async function main() {
 			if (sphFl) {
 				initBoxSize = sphInitBoxSizes[paramsIdx]
 				sphSimulator.reset(sphNumParticleParams[paramsIdx], initBoxSize)
-				camera.reset(canvasElement, sphInitDistances[paramsIdx], [0, -initBoxSize[1] + 0.1, 0], sphFov)
+				camera.reset(canvasElement, sphInitDistances[paramsIdx], [0, -initBoxSize[1] + 0.1, 0], 
+					sphFov, sphZoomRate)
 			} else {
 				initBoxSize = mlsmpmInitBoxSizes[paramsIdx]
 				mlsmpmSimulator.reset(mlsmpmNumParticleParams[paramsIdx], initBoxSize)
-				camera.reset(canvasElement, mlsmpmInitDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], mlsmpmFov)
+				camera.reset(canvasElement, mlsmpmInitDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], 
+					mlsmpmFov, mlsmpmZoomRate)
 			}
 			realBoxSize = [...initBoxSize]
 			let slider = document.getElementById("slider") as HTMLInputElement
@@ -234,25 +239,30 @@ async function main() {
 		// ボックスサイズの変更
 		const slider = document.getElementById("slider") as HTMLInputElement
 		const particle = document.getElementById("particle") as HTMLInputElement
+		sphereRenderFl = particle.checked
 		let curBoxWidthRatio = parseInt(slider.value) / 200 + 0.5
-		const minClosingSpeed = -0.007
+		const minClosingSpeed = sphFl ? -0.015 : -0.007
 		const dVal = Math.max(curBoxWidthRatio - boxWidthRatio, minClosingSpeed)
 		boxWidthRatio += dVal
 
 		// 行列の更新
 		realBoxSize[2] = initBoxSize[2] * boxWidthRatio
-		mlsmpmSimulator.changeBoxSize(realBoxSize)
-		device.queue.writeBuffer(renderUniformBuffer, 0, renderUniformsValues) // これもなくしたい
+		if (sphFl) {
+			sphSimulator.changeBoxSize(realBoxSize)
+		} else {
+			mlsmpmSimulator.changeBoxSize(realBoxSize)
+		}
+		device.queue.writeBuffer(renderUniformBuffer, 0, renderUniformsValues) 
 
 		const commandEncoder = device.createCommandEncoder()
 
 		// 計算のためのパス
 		if (sphFl) {
 			sphSimulator.execute(commandEncoder)
-			sphRenderer.execute(context, commandEncoder, sphSimulator.numParticles)
+			sphRenderer.execute(context, commandEncoder, sphSimulator.numParticles, sphereRenderFl)
 		} else {
 			mlsmpmSimulator.execute(commandEncoder)
-			mlsmpmRenderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles)
+			mlsmpmRenderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles, sphereRenderFl)
 		}
 
 		device.queue.submit([commandEncoder.finish()])

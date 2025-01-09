@@ -361,4 +361,11 @@ export class SPHSimulator {
         console.log(this.numParticles)
         return particlesBuf;
     }
+
+    changeBoxSize(realBoxSize: number[]) {
+        const realBoxSizeValues = new ArrayBuffer(12);
+        const realBoxSizeViews = new Float32Array(realBoxSizeValues);
+        realBoxSizeViews.set(realBoxSize)
+        this.device.queue.writeBuffer(this.realBoxSizeBuffer, 0, realBoxSizeViews)
+    }
 }

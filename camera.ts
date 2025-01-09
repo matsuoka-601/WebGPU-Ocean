@@ -15,6 +15,7 @@ export class Camera {
     minDistance: number
     target: number[]
     fov: number
+    zoomRate: number
 
     constructor (canvasElement: HTMLCanvasElement) {
         canvasElement.addEventListener("mousedown", (event: MouseEvent) => {
@@ -26,7 +27,7 @@ export class Camera {
         canvasElement.addEventListener("wheel", (event: WheelEvent) => {
             event.preventDefault();
             var scrollDelta = event.deltaY;
-            this.currentDistance += ((scrollDelta > 0) ? 1 : -1) * 1.5;
+            this.currentDistance += ((scrollDelta > 0) ? 1 : -1) * this.zoomRate;
             if (this.currentDistance < this.minDistance) this.currentDistance = this.minDistance;
             if (this.currentDistance > this.maxDistance) this.currentDistance = this.maxDistance;  
             this.recalculateView()
@@ -53,7 +54,7 @@ export class Camera {
         });
     }
 
-    reset(canvasElement: HTMLCanvasElement, initDistance: number, target: number[], fov: number) {
+    reset(canvasElement: HTMLCanvasElement, initDistance: number, target: number[], fov: number, zoomRate: number) {
         this.isDragging = false
         this.prevX = 0
         this.prevY = 0
@@ -67,6 +68,7 @@ export class Camera {
         this.minDistance = 0.3 * this.currentDistance
         this.target = target
         this.fov = fov
+        this.zoomRate = zoomRate
 
         const aspect = canvasElement.clientWidth / canvasElement.clientHeight
         const projection = mat4.perspective(fov, aspect, 0.1, 500) // TODO : ここの max を変える
