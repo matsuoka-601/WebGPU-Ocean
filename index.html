@@ -32,6 +32,9 @@
         top: 0; 
         right: 0; 
         margin: 20px;
+        margin-right: 10px;
+        font-size: 15px;
+        width: 270px;
       }
 
       #debug-info {
@@ -59,7 +62,7 @@
       }
     </style>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <script type="module" crossorigin src="/assets/index-Rs-pBTwU.js"></script>
+    <script type="module" crossorigin src="/assets/index-3OZizGIE.js"></script>
   </head>
   <body>
     <div id="ui-container">
@@ -76,13 +79,17 @@
       </div>
     </div>
     <div id="number-container">
+      <b>Simulation Mode</b>
+      <form id="simulation-mode" style="display: flex; gap: 10px;">
+        <label><input type="radio" name="options" value="mlsmpm" checked>MLS-MPM</label><br>
+        <label><input type="radio" name="options" value="sph">SPH</label><br>
+      </form>
       <b>Number of Particles</b>
       <form id="number-button">
-        <label><input type="radio" name="options" value="10000"> Small (10,000 particles)</label><br>
-        <label><input type="radio" name="options" value="20000" checked> Medium (20,000 particles)</label><br>
-        <label><input type="radio" name="options" value="30000"> Large (30,000 particles)</label><br>
-        <label><input type="radio" name="options" value="40000"> Very Large (40,000 particles)</label><br>
-        <label style="display: none;"><input type="radio" name="options" value="100000"> Extreme (100,000 particles)</label><br>
+        <label><input type="radio" name="options" value="0"> Small (<span id="small-value"></span> particles)</label><br>
+        <label><input type="radio" name="options" value="1" checked> Medium (<span id="medium-value"></span> particles)</label><br>
+        <label><input type="radio" name="options" value="2"> Large (<span id="large-value"></span> particles)</label><br>
+        <label><input type="radio" name="options" value="3"> Very Large (<span id="very-large-value"></span> particles)</label><br>
       </form>
     </div>
     <div id="howto-container">
