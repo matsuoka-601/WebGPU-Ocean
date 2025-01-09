@@ -130,7 +130,7 @@ async function main() {
 	let mlsmpmInitDistances = [60, 70, 90, 100]
 	let sphNumParticleParams = [10000, 20000, 30000, 40000]
 	let sphInitBoxSizes = [[0.7, 2.0, 0.7], [1.0, 2.0, 1.0], [1.2, 2.0, 1.2], [1.4, 2.0, 1.4]]
-	let sphInitDistances = [2.4, 2.8, 3.2, 3.6]
+	let sphInitDistances = [2.6, 3.0, 3.4, 3.8]
 
 	const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
 	// シミュレーション，カメラの初期化
