@@ -19,6 +19,12 @@ Initially the simulation in this project was based on **Smoothed Particle Hydrod
 My implementation of MLS-MPM is based on [nialltl's article](https://nialltl.neocities.org/articles/mpm_guide). According to the article, vanilla implementation of MPM method is not suitable for real-time simulation since the inaccuracy of the estimate of the volume forces the timestep to be small. To tackle this problem, the article suggests recalculating volume every simulation step. This technique is very effective for setting a high timestep and currently requires only **2 simulation steps per frame.** (TBH this is a bit too large timestep so occasionally the simulation explodes)
 
 Implementing 3D version of nialltl's MLS-MPM in WebGPU was relatively straightforward, but there was one difficult point : **Particle to Grid (P2G) stage.** In the P2G stage, it's required to scatter particle data to grids in parallel. The most standard way to do this in WebGPU is using `atomicAdd`. However, since `atomicAdd` exists only for 32bit integers, it's impossible to directly use it to scatter data which is held as floating-point number. To avoid this problem, **fixed-point number** is used. That is, the data itself is hold as integers and multiplied by a constant (e.g. `1e-7`) to recover the data as floating-point numbers. This way it's possible to use `atomicAdd` for scattering particle data to grids. (I discovered this technique in [pbmpm](https://github.com/electronicarts/pbmpm) repository, a reference implementation for [A Position Based Material Point Method (SIGGRAPH 2024)](https://media.contentapi.ea.com/content/dam/ea/seed/presentations/seed-siggraph2024-pbmpm-paper.pdf) by Chris Lewin. )
+## How to run
+```
+npm install
+npm run serve
+```
+If you have trouble running the repo, feel free to open an issue.
 ## TODO
 - ~~Implement MLS-MPM~~ ⇒ **Done**
   - Currently, the bottleneck of the simulation is the neighborhood search in SPH. Therefore, implementing MLS-MPM would allow us to handle even larger real-time simulation (with > 100,000 particles?) since it doesn't require neighborhood search.
