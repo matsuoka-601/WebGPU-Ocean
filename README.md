@@ -8,7 +8,7 @@ A real-time 3d fluid simulation implemented in WebGPU. Works on your browsers wh
 The following are the characteristics of the simulation.
 - **Moving Least Squares Material Point Method (MLS-MPM)** is implemented for the simulation. This algorithm enabled real-time simulation with **~100,000 particles on integrated graphics** and **~300,000 particles on decent GPUs**
   - [nialltl's article](https://nialltl.neocities.org/articles/mpm_guide) helped a lot when implementing MLS-MPM. Huge thanks for them!
-  - Particle to Grid (P2G) stage is implemented in compute shader.
+  - Particle to Grid (P2G) stage is implemented with atomicAdd.
 - **Smoothed Particle Hydrodynamics (SPH)** based on [Particle-Based Fluid Simulation for Interactive Applications](https://matthias-research.github.io/pages/publications/sca03.pdf) by Müller et al. is also implemented.
   - You can enable SPH simulation by clicking "SPH" button on the top right.
   - For **fast neighborhood search on GPU**, an algorithm described in [FAST FIXED-RADIUS NEAREST NEIGHBORS: INTERACTIVE MILLION-PARTICLE FLUIDS](https://ramakarl.com/pdfs/2014_Hoetzlein_FastFixedRadius_Neighbors.pdf) is used. 
