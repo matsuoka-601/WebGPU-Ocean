@@ -6,7 +6,7 @@ A real-time 3d fluid simulation implemented in WebGPU. Works on your browsers wh
 ![webgpu-ocean-demo](https://github.com/user-attachments/assets/5b008b16-7d46-4e09-af21-d70f6fa2ec20)
 
 The following are the characteristics of the simulation.
-- **Moving Least Squares Material Point Method (MLS-MPM)** is implemented for the simulation. This algorithm enabled real-time simulation with **~100,000 particles on integrated graphics** and **~300,000 particles on decent GPUs**
+- [**Moving Least Squares Material Point Method (MLS-MPM)**](https://yzhu.io/publication/mpmmls2018siggraph/paper.pdf) by Hu et al. is implemented for the simulation. This algorithm enabled real-time simulation with **~100,000 particles on integrated graphics** and **~300,000 particles on decent GPUs**
   - [nialltl's article](https://nialltl.neocities.org/articles/mpm_guide) helped a lot when implementing MLS-MPM. Huge thanks for them!
   - Particle to Grid (P2G) stage is implemented with atomicAdd.
 - **Smoothed Particle Hydrodynamics (SPH)** based on [Particle-Based Fluid Simulation for Interactive Applications](https://matthias-research.github.io/pages/publications/sca03.pdf) by Müller et al. is also implemented.
