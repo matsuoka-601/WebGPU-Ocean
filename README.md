@@ -34,5 +34,5 @@ If you have trouble running the repo, feel free to open an issue.
   - But I suspect this method might be a bit too expensive for real-time simulation since it requires neighborhood search. Is there a cheaper way to generate foams?🤔
 - Use better rendering method with less artifacts like [Narrow-Range Filter](https://dl.acm.org/doi/10.1145/3203201)
   - Currently, there are some artifacts derived from bilateral filter in rendered fluid. Using Narrow-Range Filter would reduce those artifacts.
-## Known Bug
+## Known bug
 - SPH mode seems to crash on Mac
