@@ -71,7 +71,7 @@ export class Camera {
         this.zoomRate = zoomRate
 
         const aspect = canvasElement.clientWidth / canvasElement.clientHeight
-        const projection = mat4.perspective(fov, aspect, 0.1, 500) // TODO : ここの max を変える
+        const projection = mat4.perspective(fov, aspect, 0.1, 300) // TODO : ここの max を変える
         renderUniformsViews.projection_matrix.set(projection)
         renderUniformsViews.inv_projection_matrix.set(mat4.inverse(projection))
         this.recalculateView()

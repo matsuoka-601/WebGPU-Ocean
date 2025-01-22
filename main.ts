@@ -173,6 +173,14 @@ async function main() {
 			simulationModePressedButton = target.value
 		}
 	}); 
+	// スペースキーの監視
+	let stop = false;
+	document.addEventListener("keydown", (event) => {
+		if (event.code === "Space") {
+			event.preventDefault(); 
+			stop = !stop;
+		}
+	});
 
 	const smallValue = document.getElementById("small-value") as HTMLSpanElement;
 	const mediumValue = document.getElementById("medium-value") as HTMLSpanElement;
@@ -267,12 +275,13 @@ async function main() {
 
 		// 計算のためのパス
 		if (sphFl) {
-			sphSimulator.execute(commandEncoder)
+			if (!stop) sphSimulator.execute(commandEncoder)
 			sphRenderer.execute(context, commandEncoder, sphSimulator.numParticles, sphereRenderFl)
 		} else {
-			mlsmpmSimulator.execute(commandEncoder)
+			if (!stop) mlsmpmSimulator.execute(commandEncoder)
 			mlsmpmRenderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles, sphereRenderFl)
 		}
+
 
 		device.queue.submit([commandEncoder.finish()])
 		const end = performance.now();

@@ -194,11 +194,11 @@ export class MLSMPMSimulator {
 
     initDambreak(initBoxSize: number[], numParticles: number) {
         let particlesBuf = new ArrayBuffer(mlsmpmParticleStructSize * numParticlesMax);
-        const spacing = 0.65;
+        const spacing = 0.55;
 
         this.numParticles = 0;
         
-        for (let j = 0; j < initBoxSize[1] * 0.80 && this.numParticles < numParticles; j += spacing) {
+        for (let j = 3; j < initBoxSize[1] * 0.80 && this.numParticles < numParticles; j += spacing) {
             for (let i = 3; i < initBoxSize[0] - 4 && this.numParticles < numParticles; i += spacing) {
                 for (let k = 3; k < initBoxSize[2] / 2 && this.numParticles < numParticles; k += spacing) {
                     const offset = mlsmpmParticleStructSize * this.numParticles;

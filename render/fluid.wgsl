@@ -65,20 +65,21 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
     var specular: f32   = pow(max(0.0, dot(H, normal)), 250.);
     var diffuse: f32  = max(0.0, dot(lightDir, normal)) * 1.0;
 
-    var density = 1.5; 
+    var density = 0.4; 
     
     var thickness = textureLoad(thickness_texture, vec2u(input.iuv), 0).r;
-    var diffuseColor = vec3f(0.085, 0.6375, 0.9);
+    var diffuseColor = vec3f(0.085, 0.7375, 0.9);
+    // var diffuseColor = vec3f(1.0, 1.0, 1.0);
     var transmittance: vec3f = exp(-density * thickness * (1.0 - diffuseColor)); 
     var refractionColor: vec3f = bgColor * transmittance;
 
     let F0 = 0.02;
-    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 1.0);
+    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 0.3);
 
     var reflectionDir: vec3f = reflect(rayDir, normal);
     var reflectionDirWorld: vec3f = (uniforms.inv_view_matrix * vec4f(reflectionDir, 0.0)).xyz;
     var reflectionColor: vec3f = textureSampleLevel(envmap_texture, texture_sampler, reflectionDirWorld, 0.).rgb; 
-    var finalColor = 1.0 * specular + mix(refractionColor, reflectionColor, fresnel);
+    var finalColor = 0.0 * specular + mix(refractionColor, reflectionColor, fresnel);
 
     return vec4f(finalColor, 1.0);
 
@@ -86,6 +87,10 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
 
     // 法線
     // return vec4f(0.5 * normal + 0.5, 1.);
+    // let norm = dot(normal, normal);
+    // // let left = getViewPosFromTexCoord(input.uv + vec2f(-uniforms.texel_size.x, 0.), input.iuv + vec2f(-1.0, 0.0));
+    // let left_depth = abs(textureLoad(texture, vec2u(input.iuv + vec2f(-10.0, 0.0)), 0).x);
+    // return vec4f(10000000 * abs(left_depth), 0, 0, 1.);
     // 法線の y 成分    
     // return vec4f(vec3f(normal.x, 0, 0), 1);
     // return vec4f(vec3f(normal.y, 0, 0), 1);
