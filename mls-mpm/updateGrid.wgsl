@@ -31,7 +31,7 @@ fn updateGrid(@builtin(global_invocation_id) id: vec3<u32>) {
             );
             float_v /= decodeFixedPoint(cells[id.x].mass);
             cells[id.x].vx = encodeFixedPoint(float_v.x);
-            cells[id.x].vy = encodeFixedPoint(float_v.y + -0.3 * dt);
+            cells[id.x].vy = encodeFixedPoint(float_v.y + -0.25 * dt);
             cells[id.x].vz = encodeFixedPoint(float_v.z);
 
             var x: i32 = i32(id.x) / i32(init_box_size.z) / i32(init_box_size.y);

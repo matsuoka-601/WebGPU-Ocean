@@ -70,10 +70,10 @@ export class SPHSimulator {
         const offset = sentinel / 2;
 
         const stiffness = 20;
-        const nearStiffness = 1.0;
+        const nearStiffness = 2.0;
         const mass = 1.0;
         const restDensity = 15000;
-        const viscosity = 100;
+        const viscosity = 150;
         const dt = 0.006;
 
         this.gridClearPipeline = device.createComputePipeline({

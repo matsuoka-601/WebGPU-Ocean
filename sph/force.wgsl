@@ -103,8 +103,8 @@ fn computeForce(@builtin(global_invocation_id) id: vec3<u32>) {
                             }
                             if (r2 < params.kernelRadiusPow2 && 1e-64 < r2) {
                                 let r = sqrt(r2);
-                                let pressure_i = params.stiffness * (density_i - params.restDensity);
-                                let pressure_j = params.stiffness * (density_j - params.restDensity);
+                                let pressure_i = max(-0., params.stiffness * (density_i - params.restDensity));
+                                let pressure_j = max(-0., params.stiffness * (density_j - params.restDensity));
                                 let nearPressure_i = params.nearStiffness * nearDensity_i;
                                 let nearPressure_j = params.nearStiffness * nearDensity_j;
                                 let sharedPressure = (pressure_i + pressure_j) / 2.0;

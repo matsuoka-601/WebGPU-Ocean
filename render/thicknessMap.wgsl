@@ -24,6 +24,30 @@ struct PosVel {
 @group(0) @binding(0) var<storage> particles: array<PosVel>;
 @group(0) @binding(1) var<uniform> uniforms: RenderUniforms;
 
+// assuming center is origin
+fn computeStretchedVertex(position: vec2f, velocity_dir: vec2f, strength: f32) -> vec2f {
+    // velocity_dir is obtained by normalizing velocity and set z element 0
+    let stretch_offset: vec2f = dot(velocity_dir, position) * velocity_dir;
+    return position + stretch_offset * strength;
+}
+
+fn area(v1: vec2f, v2: vec2f, v3: vec2f, v4: vec2f) -> f32 {
+    let ab = v2 - v1;
+    let ad = v4 - v1;
+    let s = abs(ab.x * ad.y - ab.y * ad.x);
+    return s;
+}
+
+fn scaleQuad(vel: vec2f, r: f32, strength: f32) -> f32 {
+    let s1: f32 = r * r;
+    let v1 = computeStretchedVertex(vec2f(0.5 * r, 0.5 * r), vel, strength);
+    let v2 = computeStretchedVertex(vec2f(-0.5 * r, 0.5 * r), vel, strength);
+    let v3 = computeStretchedVertex(vec2f(-0.5 * r, -0.5 * r), vel, strength);
+    let v4 = computeStretchedVertex(vec2f(0.5 * r, -0.5 * r), vel, strength);
+    let s2: f32 = area(v1, v2, v3, v4);
+    return sqrt(s1 / s2);
+}
+
 @vertex
 fn vs(    
     @builtin(vertex_index) vertex_index: u32, 
@@ -38,7 +62,13 @@ fn vs(
         vec2(-0.5,  0.5),
     );
 
-    let corner = vec3(corner_positions[vertex_index] * uniforms.sphere_size, 0.0);
+
+    var corner = vec3(corner_positions[vertex_index] * uniforms.sphere_size, 0.0);
+    let projected_velocity = (uniforms.view_matrix * vec4f(particles[instance_index].v, 0.0)).xy;
+    let strength = 1.;
+    let stretched_position = computeStretchedVertex(corner_positions[vertex_index] * uniforms.sphere_size, projected_velocity, strength);
+    corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, uniforms.sphere_size, strength);
+
     let uv = corner_positions[vertex_index] + 0.5;
 
     let real_position = particles[instance_index].position;

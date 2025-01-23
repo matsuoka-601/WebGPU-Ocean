@@ -34,7 +34,7 @@ async function init() {
 	}
 
 	// const { devicePixelRatio } = window
-	// let devicePixelRatio  = 3.0;
+	// let devicePixelRatio  = 5.0;
 	let devicePixelRatio  = 0.7;
 	canvas.width = devicePixelRatio * canvas.clientWidth
 	canvas.height = devicePixelRatio * canvas.clientHeight
@@ -126,7 +126,7 @@ async function main() {
 	console.log("buffer allocating done")
 
 	let mlsmpmNumParticleParams = [40000, 70000, 120000, 200000]
-	let mlsmpmInitBoxSizes = [[35, 25, 55], [40, 30, 60], [45, 40, 80], [50, 50, 80]]
+	let mlsmpmInitBoxSizes = [[35, 40, 55], [40, 40, 60], [45, 40, 80], [50, 50, 80]]
 	let mlsmpmInitDistances = [60, 70, 90, 100]
 	let sphNumParticleParams = [10000, 20000, 30000, 40000]
 	let sphInitBoxSizes = [[0.7, 2.0, 0.7], [1.0, 2.0, 1.0], [1.2, 2.0, 1.2], [1.4, 2.0, 1.4]]
@@ -135,7 +135,7 @@ async function main() {
 	const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
 	// シミュレーション，カメラの初期化
 	const mlsmpmFov = 45 * Math.PI / 180
-	const mlsmpmRadius = 0.6 
+	const mlsmpmRadius = 0.7
 	const mlsmpmDiameter = 2 * mlsmpmRadius
 	const mlsmpmZoomRate = 1.5
 	const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, mlsmpmDiameter, device)
