@@ -82,8 +82,11 @@ fn g2p(@builtin(global_invocation_id) id: vec3<u32>) {
         let dirToOrigin = normalize(dist);
         var rForce = vec3f(0);
 
-        if (dot(dist, dist) < 18 * 18) {
-            particles[id.x].v += -(18 - sqrt(dot(dist, dist))) * dirToOrigin * 3.0;
+        // let r: f32 = 16.; // 40,000
+        let r: f32 = 18.; // 60,000
+
+        if (dot(dist, dist) < r * r) {
+            particles[id.x].v += -(r - sqrt(dot(dist, dist))) * dirToOrigin * 3.0;
         }
 
         particles[id.x].v += dirToOrigin * 0.1;

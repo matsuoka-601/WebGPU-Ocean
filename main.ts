@@ -126,8 +126,8 @@ async function main() {
 	console.log("buffer allocating done")
 
 	let mlsmpmNumParticleParams = [40000, 60000, 120000, 200000]
-	let mlsmpmInitBoxSizes = [[35, 40, 55], [60, 60, 60], [45, 40, 80], [50, 50, 80]]
-	let mlsmpmInitDistances = [60, 70, 90, 100]
+	let mlsmpmInitBoxSizes = [[56, 56, 56], [60, 60, 60], [45, 40, 80], [50, 50, 80]]
+	let mlsmpmInitDistances = [70, 70, 90, 100]
 	let sphNumParticleParams = [10000, 20000, 30000, 40000]
 	let sphInitBoxSizes = [[0.7, 2.0, 0.7], [1.0, 2.0, 1.0], [1.2, 2.0, 1.2], [1.4, 2.0, 1.4]]
 	let sphInitDistances = [2.6, 3.0, 3.4, 3.8]
@@ -244,7 +244,7 @@ async function main() {
 			} else {
 				initBoxSize = mlsmpmInitBoxSizes[paramsIdx]
 				mlsmpmSimulator.reset(mlsmpmNumParticleParams[paramsIdx], initBoxSize)
-				camera.reset(canvasElement, mlsmpmInitDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], 
+				camera.reset(canvasElement, mlsmpmInitDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 2, initBoxSize[2] / 2], 
 					mlsmpmFov, mlsmpmZoomRate)
 			}
 			realBoxSize = [...initBoxSize]

@@ -65,10 +65,11 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
     var specular: f32   = pow(max(0.0, dot(H, normal)), 250.);
     var diffuse: f32  = max(0.0, dot(lightDir, normal)) * 1.0;
 
-    var density = 0.2; 
+    var density = 0.6; 
     
     var thickness = textureLoad(thickness_texture, vec2u(input.iuv), 0).r;
 
+    // var diffuseColor = vec3f(0.0, 0.7375, 0.95);
     var diffuseColor = vec3f(0.0, 0.7375, 0.95);
     var transmittance: vec3f = exp(-density * thickness * (1.0 - diffuseColor)); 
     var refractionColor: vec3f = bgColor * transmittance;
