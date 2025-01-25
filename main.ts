@@ -35,7 +35,7 @@ async function init() {
 
 	// const { devicePixelRatio } = window
 	// let devicePixelRatio  = 5.0;
-	let devicePixelRatio  = 0.7;
+	let devicePixelRatio  = 0.5;
 	canvas.width = devicePixelRatio * canvas.clientWidth
 	canvas.height = devicePixelRatio * canvas.clientHeight
 
@@ -125,8 +125,8 @@ async function main() {
 
 	console.log("buffer allocating done")
 
-	let mlsmpmNumParticleParams = [40000, 70000, 120000, 200000]
-	let mlsmpmInitBoxSizes = [[35, 40, 55], [40, 40, 60], [45, 40, 80], [50, 50, 80]]
+	let mlsmpmNumParticleParams = [40000, 60000, 120000, 200000]
+	let mlsmpmInitBoxSizes = [[35, 40, 55], [60, 60, 60], [45, 40, 80], [50, 50, 80]]
 	let mlsmpmInitDistances = [60, 70, 90, 100]
 	let sphNumParticleParams = [10000, 20000, 30000, 40000]
 	let sphInitBoxSizes = [[0.7, 2.0, 0.7], [1.0, 2.0, 1.0], [1.2, 2.0, 1.2], [1.4, 2.0, 1.4]]
@@ -200,7 +200,7 @@ async function main() {
 	let initBoxSize = mlsmpmInitBoxSizes[1]
 	let realBoxSize = [...initBoxSize];
 	mlsmpmSimulator.reset(mlsmpmNumParticleParams[1], mlsmpmInitBoxSizes[1])
-	camera.reset(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 4, initBoxSize[2] / 2], 
+	camera.reset(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 2, initBoxSize[2] / 2], 
 		mlsmpmFov, mlsmpmZoomRate)
 
 	smallValue.textContent = "40,000"

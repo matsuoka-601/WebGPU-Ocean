@@ -10,9 +10,9 @@ import { numParticlesMax, renderUniformsViews } from '../common';
 export const mlsmpmParticleStructSize = 80
 
 export class MLSMPMSimulator {
-    max_x_grids = 64;
-    max_y_grids = 64;
-    max_z_grids = 64;
+    max_x_grids = 72;
+    max_y_grids = 72;
+    max_z_grids = 72;
     cellStructSize = 16;
     realBoxSizeBuffer: GPUBuffer
     initBoxSizeBuffer: GPUBuffer
