@@ -332,6 +332,7 @@ export class FluidRenderer {
     execute(context: GPUCanvasContext, commandEncoder: GPUCommandEncoder, 
         numParticles: number, sphereRenderFl: boolean) 
     {
+        console.log(numParticles)
         // これらも前もって作っておけるんじゃないか？
         const depthMapPassDescriptor: GPURenderPassDescriptor = {
             colorAttachments: [

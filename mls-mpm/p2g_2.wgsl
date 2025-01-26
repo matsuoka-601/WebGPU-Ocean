@@ -26,10 +26,11 @@ fn decodeFixedPoint(fixed_point: i32) -> f32 {
 @group(0) @binding(0) var<storage, read> particles: array<Particle>;
 @group(0) @binding(1) var<storage, read_write> cells: array<Cell>;
 @group(0) @binding(2) var<uniform> init_box_size: vec3f;
+@group(0) @binding(3) var<uniform> numParticles: u32;
 
 @compute @workgroup_size(64)
 fn p2g_2(@builtin(global_invocation_id) id: vec3<u32>) {
-    if (id.x < arrayLength(&particles)) {
+    if (id.x < numParticles) {
         var weights: array<vec3f, 3>;
 
         let particle = particles[id.x];

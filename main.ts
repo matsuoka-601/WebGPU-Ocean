@@ -125,7 +125,7 @@ async function main() {
 
 	console.log("buffer allocating done")
 
-	let mlsmpmNumParticleParams = [40000, 60000, 120000, 200000]
+	let mlsmpmNumParticleParams = [40000, 0, 120000, 200000]
 	let mlsmpmInitBoxSizes = [[56, 56, 56], [60, 60, 60], [45, 40, 80], [50, 50, 80]]
 	let mlsmpmInitDistances = [70, 70, 90, 100]
 	let sphNumParticleParams = [10000, 20000, 30000, 40000]
@@ -281,7 +281,6 @@ async function main() {
 			if (!stop) mlsmpmSimulator.execute(commandEncoder)
 			mlsmpmRenderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles, sphereRenderFl)
 		}
-
 
 		device.queue.submit([commandEncoder.finish()])
 		const end = performance.now();

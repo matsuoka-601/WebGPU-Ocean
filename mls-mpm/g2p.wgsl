@@ -17,6 +17,7 @@ override dt: f32;
 @group(0) @binding(1) var<storage, read> cells: array<Cell>;
 @group(0) @binding(2) var<uniform> real_box_size: vec3f;
 @group(0) @binding(3) var<uniform> init_box_size: vec3f;
+@group(0) @binding(4) var<uniform> numParticles: u32;
 
 fn decodeFixedPoint(fixed_point: i32) -> f32 {
 	return f32(fixed_point) / fixed_point_multiplier;
@@ -25,7 +26,7 @@ fn decodeFixedPoint(fixed_point: i32) -> f32 {
 
 @compute @workgroup_size(64)
 fn g2p(@builtin(global_invocation_id) id: vec3<u32>) {
-    if (id.x < arrayLength(&particles)) {
+    if (id.x < numParticles) {
         particles[id.x].v = vec3f(0.);
         var weights: array<vec3f, 3>;
 
@@ -82,8 +83,9 @@ fn g2p(@builtin(global_invocation_id) id: vec3<u32>) {
         let dirToOrigin = normalize(dist);
         var rForce = vec3f(0);
 
-        // let r: f32 = 16.; // 40,000
-        let r: f32 = 18.; // 60,000
+        // let r: f32 = 18.; // 40,000
+        let r: f32 = 20.; // 60,000
+        // let r: f32 = 26.; // 100,000
 
         if (dot(dist, dist) < r * r) {
             particles[id.x].v += -(r - sqrt(dot(dist, dist))) * dirToOrigin * 3.0;

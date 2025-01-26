@@ -11,10 +11,11 @@ struct PosVel {
 
 @group(0) @binding(0) var<storage, read> particles: array<Particle>;
 @group(0) @binding(1) var<storage, read_write> posvel: array<PosVel>;
+@group(0) @binding(2) var<uniform> numParticles: u32;
 
 @compute @workgroup_size(64)
 fn copyPosition(@builtin(global_invocation_id) id: vec3<u32>) {
-    if (id.x < arrayLength(&particles)) { // 変える
+    if (id.x < numParticles) { // 変える
         posvel[id.x].position = particles[id.x].position;
         posvel[id.x].v = particles[id.x].v;
     }
