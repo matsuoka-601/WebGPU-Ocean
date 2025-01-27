@@ -45,11 +45,15 @@ export class MLSMPMSimulator {
 
     frameCount: number
 
+    spawned: boolean
+
     constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, renderDiameter: number, device: GPUDevice) 
     {
         this.device = device
         this.renderDiameter = renderDiameter
         this.frameCount = 0
+        this.spawned = false
+        this.numParticles = 0
         const clearGridModule = device.createShaderModule({ code: clearGrid });
         const spawnParticlesModule = device.createShaderModule({ code: spawnParticles });
         const p2g1Module = device.createShaderModule({ code: p2g_1 });
@@ -269,11 +273,20 @@ export class MLSMPMSimulator {
         this.frameCount = 0;
         this.changeBoxSize(initBoxSize);
         this.changeNumParticles(numParticles);
-        console.log(this.numParticles)
+        console.log("init particles: ", this.numParticles)
     }
 
     execute(commandEncoder: GPUCommandEncoder) {
         const computePass = commandEncoder.beginComputePass();
+
+        if (this.frameCount % 2 == 0 && this.numParticles < 60000) { // TODO : dt に依存しないようにする
+            console.log("spawn");
+            computePass.setBindGroup(0, this.spawnParticlesBindGroup)
+            computePass.setPipeline(this.spawnParticlesPipeline)
+            computePass.dispatchWorkgroups(1)
+            this.changeNumParticles(this.numParticles + 100)
+        }
+
         for (let i = 0; i < 2; i++) { 
             computePass.setBindGroup(0, this.clearGridBindGroup);
             computePass.setPipeline(this.clearGridPipeline);
@@ -293,16 +306,13 @@ export class MLSMPMSimulator {
             computePass.setBindGroup(0, this.copyPositionBindGroup)
             computePass.setPipeline(this.copyPositionPipeline)
             computePass.dispatchWorkgroups(Math.ceil(this.numParticles / 64))  
+            computePass.setBindGroup(0, this.copyPositionBindGroup)
+            computePass.setPipeline(this.copyPositionPipeline)
+            computePass.dispatchWorkgroups(Math.ceil(this.numParticles / 64))  
         }
-   
-        if (this.frameCount % 2 == 0 && this.numParticles < 60000) {
-            computePass.setBindGroup(0, this.spawnParticlesBindGroup)
-            computePass.setPipeline(this.spawnParticlesPipeline)
-            computePass.dispatchWorkgroups(1)
-            this.changeNumParticles(this.numParticles + 100)
-        }
-
         computePass.end()
+
+        console.log("current particles: ", this.numParticles)
         this.frameCount++;
     }
 

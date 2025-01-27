@@ -72,7 +72,7 @@ fn vs(
 
     var corner = vec3(corner_positions[vertex_index] * uniforms.sphere_size, 0.0);
     let projected_velocity = (uniforms.view_matrix * vec4f(particles[instance_index].v, 0.0)).xy;
-    let strength = 1.;
+    let strength = 0.6;
     let stretched_position = computeStretchedVertex(corner_positions[vertex_index] * uniforms.sphere_size, projected_velocity, strength);
     corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, uniforms.sphere_size, strength);
 

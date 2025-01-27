@@ -126,7 +126,7 @@ async function main() {
 	console.log("buffer allocating done")
 
 	let mlsmpmNumParticleParams = [40000, 0, 120000, 200000]
-	let mlsmpmInitBoxSizes = [[56, 56, 56], [60, 60, 60], [45, 40, 80], [50, 50, 80]]
+	let mlsmpmInitBoxSizes = [[56, 56, 56], [56, 56, 56], [45, 40, 80], [50, 50, 80]]
 	let mlsmpmInitDistances = [70, 70, 90, 100]
 	let sphNumParticleParams = [10000, 20000, 30000, 40000]
 	let sphInitBoxSizes = [[0.7, 2.0, 0.7], [1.0, 2.0, 1.0], [1.2, 2.0, 1.2], [1.4, 2.0, 1.4]]
@@ -283,6 +283,7 @@ async function main() {
 		}
 
 		device.queue.submit([commandEncoder.finish()])
+
 		const end = performance.now();
 		// console.log(`js: ${(end - start).toFixed(1)}ms`);
 

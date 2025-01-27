@@ -15,7 +15,7 @@ struct PosVel {
 
 @compute @workgroup_size(64)
 fn copyPosition(@builtin(global_invocation_id) id: vec3<u32>) {
-    if (id.x < numParticles) { // 変える
+    if (id.x < numParticles) { 
         posvel[id.x].position = particles[id.x].position;
         posvel[id.x].v = particles[id.x].v;
     }
