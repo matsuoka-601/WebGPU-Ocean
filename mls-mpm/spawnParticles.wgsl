@@ -10,11 +10,11 @@ struct Particle {
 
 @compute @workgroup_size(1)
 fn spawn() {
-    let dx: f32 = 0.6;
+    let dx: f32 = 0.5;
     let center: vec3f = init_box_size / 2;
     let beg: vec3f = vec3f(5);
     let base: vec3f = beg + vec3f(4.5 * dx, 4.5 * dx, 0);
-    let vScale: f32 = 0.5;
+    let vScale: f32 = 0.3;
 
     let dummy = numParticles;
 
