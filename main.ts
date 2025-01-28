@@ -35,7 +35,7 @@ async function init() {
 
 	// const { devicePixelRatio } = window
 	// let devicePixelRatio  = 5.0;
-	let devicePixelRatio  = 0.5;
+	let devicePixelRatio  = 0.7;
 	canvas.width = devicePixelRatio * canvas.clientWidth
 	canvas.height = devicePixelRatio * canvas.clientHeight
 
@@ -258,8 +258,10 @@ async function main() {
 		const particle = document.getElementById("particle") as HTMLInputElement
 		sphereRenderFl = particle.checked
 		let curBoxWidthRatio = parseInt(slider.value) / 200 + 0.5
-		const minClosingSpeed = sphFl ? -0.015 : -0.007
-		const dVal = Math.max(curBoxWidthRatio - boxWidthRatio, minClosingSpeed)
+		const minClosingSpeed = sphFl ? -0.015 : -0.01
+		const maxOpeningSpeed = sphFl ? 0.015 : 0.04
+		let dVal = Math.max(curBoxWidthRatio - boxWidthRatio, minClosingSpeed)
+		dVal = Math.min(dVal, maxOpeningSpeed);
 		boxWidthRatio += dVal
 
 		// 行列の更新

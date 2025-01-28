@@ -38,7 +38,7 @@ fn getViewPosFromTexCoord(tex_coord: vec2f, iuv: vec2f) -> vec3f {
 fn fs(input: FragmentInput) -> @location(0) vec4f {
     var depth: f32 = abs(textureLoad(texture, vec2u(input.iuv), 0).r);
 
-    let bgColor: vec3f = vec3f(0.6, 0.6, 0.6);
+    let bgColor: vec3f = vec3f(0.7, 0.7, 0.7);
 
     if (depth >= 1e4 || depth <= 0.) {
         return vec4f(bgColor, 1.);
@@ -69,7 +69,7 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
     
     var thickness = textureLoad(thickness_texture, vec2u(input.iuv), 0).r;
 
-    // var diffuseColor = vec3f(0.0, 0.7375, 0.95);
+    // var diffuseColor = vec3f(1.0, 1.0, 1.0);
     var diffuseColor = vec3f(0.0, 0.7375, 0.95);
     var transmittance: vec3f = exp(-density * thickness * (1.0 - diffuseColor)); 
     var refractionColor: vec3f = bgColor * transmittance;
@@ -80,12 +80,12 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
     var reflectionDir: vec3f = reflect(rayDir, normal);
     var reflectionDirWorld: vec3f = (uniforms.inv_view_matrix * vec4f(reflectionDir, 0.0)).xyz;
     var reflectionColor: vec3f = textureSampleLevel(envmap_texture, texture_sampler, reflectionDirWorld, 0.).rgb; 
-    var finalColor = 0.3 * specular + mix(refractionColor, reflectionColor, fresnel);
+    var finalColor = 0.3      * specular + mix(refractionColor, reflectionColor, fresnel);
 
 
     let maxDeltaZ = max(max(abs(ddx.z), abs(ddy.z)), max(abs(ddx2.z), abs(ddy2.z)));
     if (maxDeltaZ > 1.5 * uniforms.sphere_size) {
-        return vec4f(mix(finalColor, vec3f(1.), 0.2), 1.0);
+        return vec4f(mix(finalColor, vec3f(0.9), 0.3), 1.0);
     }
 
     return vec4f(finalColor, 1.0);
