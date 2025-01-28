@@ -40,7 +40,7 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
 
     let bgColor: vec3f = vec3f(0.7, 0.7, 0.7);
 
-    if (depth >= 1e4 || depth <= 0.) {
+    if (depth >= 1e4) {
         return vec4f(bgColor, 1.);
     }
 

@@ -47,7 +47,8 @@ export class MLSMPMSimulator {
 
     spawned: boolean
 
-    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, renderDiameter: number, device: GPUDevice) 
+    constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, renderDiameter: number, device: GPUDevice, 
+        renderUniformBuffer: GPUBuffer, depthMapTextureView: GPUTextureView) 
     {
         this.device = device
         this.renderDiameter = renderDiameter
@@ -203,6 +204,8 @@ export class MLSMPMSimulator {
                 { binding: 0, resource: { buffer: cellBuffer }},
                 { binding: 1, resource: { buffer: this.realBoxSizeBuffer }},
                 { binding: 2, resource: { buffer: this.initBoxSizeBuffer }},
+                { binding: 3, resource: { buffer: renderUniformBuffer }}, 
+                { binding: 4, resource: depthMapTextureView }
             ],
         })
         this.g2pBindGroup = device.createBindGroup({

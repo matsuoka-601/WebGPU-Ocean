@@ -138,7 +138,6 @@ async function main() {
 	const mlsmpmRadius = 0.7
 	const mlsmpmDiameter = 2 * mlsmpmRadius
 	const mlsmpmZoomRate = 1.5
-	const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, mlsmpmDiameter, device)
 	const sphFov = 45 * Math.PI / 180
 	const sphRadius = 0.04
 	const sphDiameter = 2 * sphRadius
@@ -146,6 +145,7 @@ async function main() {
 	const sphSimulator = new SPHSimulator(particleBuffer, posvelBuffer, sphDiameter, device)
 
 	const mlsmpmRenderer = new FluidRenderer(device, canvas, presentationFormat, mlsmpmRadius, mlsmpmFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
+	const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, mlsmpmDiameter, device, renderUniformBuffer, mlsmpmRenderer.depthMapTextureView)
 	const sphRenderer = new FluidRenderer(device, canvas, presentationFormat, sphRadius, sphFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
 
 	console.log("simulator initialization done")
