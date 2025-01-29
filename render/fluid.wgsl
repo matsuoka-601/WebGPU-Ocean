@@ -75,12 +75,12 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
     var refractionColor: vec3f = bgColor * transmittance;
 
     let F0 = 0.02;
-    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0), 0., 1.);
+    var fresnel: f32 = clamp(F0 + (1.0 - F0) * pow(1.0 - dot(normal, -rayDir), 5.0) + 0.02, 0., 1.);
 
     var reflectionDir: vec3f = reflect(rayDir, normal);
     var reflectionDirWorld: vec3f = (uniforms.inv_view_matrix * vec4f(reflectionDir, 0.0)).xyz;
     var reflectionColor: vec3f = textureSampleLevel(envmap_texture, texture_sampler, reflectionDirWorld, 0.).rgb; 
-    var finalColor = 0.6      * specular + mix(refractionColor, reflectionColor, fresnel);
+    var finalColor = 0.0 * specular + mix(refractionColor, reflectionColor, fresnel);
 
 
     let maxDeltaZ = max(max(abs(ddx.z), abs(ddy.z)), max(abs(ddx2.z), abs(ddy2.z)));
