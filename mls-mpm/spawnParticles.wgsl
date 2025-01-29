@@ -14,7 +14,7 @@ fn spawn() {
     let center: vec3f = init_box_size / 2;
     let beg: vec3f = vec3f(5);
     let base: vec3f = beg + vec3f(4.5 * dx, 4.5 * dx, 0);
-    let vScale: f32 = 0.3;
+    let vScale: f32 = 0.6;
 
     let dummy = numParticles;
 

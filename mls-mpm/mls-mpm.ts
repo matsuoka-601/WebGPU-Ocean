@@ -18,6 +18,7 @@ export class MLSMPMSimulator {
     realBoxSizeBuffer: GPUBuffer
     initBoxSizeBuffer: GPUBuffer
     numParticlesBuffer: GPUBuffer
+    densityBuffer: GPUBuffer
     numParticles = 0
     gridCount = 0
 
@@ -149,6 +150,11 @@ export class MLSMPMSimulator {
             size: this.cellStructSize * maxGridCount,  
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
+        this.densityBuffer = device.createBuffer({
+            label: 'density buffer', 
+            size: 4 * numParticlesMax, 
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        })
         this.realBoxSizeBuffer = device.createBuffer({
             label: 'real box size buffer', 
             size: realBoxSizeValues.byteLength, 
@@ -196,6 +202,7 @@ export class MLSMPMSimulator {
                 { binding: 1, resource: { buffer: cellBuffer }}, 
                 { binding: 2, resource: { buffer: this.initBoxSizeBuffer }}, 
                 { binding: 3, resource: { buffer: this.numParticlesBuffer }}, 
+                { binding: 4, resource: { buffer: this.densityBuffer }}
             ]
         })
         this.updateGridBindGroup = device.createBindGroup({
@@ -224,6 +231,7 @@ export class MLSMPMSimulator {
                 { binding: 0, resource: { buffer: particleBuffer }}, 
                 { binding: 1, resource: { buffer: posvelBuffer }}, 
                 { binding: 2, resource: { buffer: this.numParticlesBuffer }}, 
+                { binding: 3, resource: { buffer: this.densityBuffer }}, 
             ]
         })
 

@@ -19,6 +19,7 @@ struct FragmentInput {
 struct PosVel {
     position: vec3f, 
     v: vec3f, 
+    density: f32, 
 }
 
 @group(0) @binding(0) var<storage> particles: array<PosVel>;
@@ -62,12 +63,11 @@ fn vs(
         vec2(-0.5,  0.5),
     );
 
-
-    var corner = vec3(corner_positions[vertex_index] * uniforms.sphere_size, 0.0);
+    let size = uniforms.sphere_size * clamp(particles[instance_index].density / 1.5, 0.2, 1.0);
     let projected_velocity = (uniforms.view_matrix * vec4f(particles[instance_index].v, 0.0)).xy;
-    let strength = 0.6;
-    let stretched_position = computeStretchedVertex(corner_positions[vertex_index] * uniforms.sphere_size, projected_velocity, strength);
-    corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, uniforms.sphere_size, strength);
+    let strength = 1.5;
+    let stretched_position = computeStretchedVertex(corner_positions[vertex_index] * size, projected_velocity, strength);
+    let corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, size, strength);
 
     let uv = corner_positions[vertex_index] + 0.5;
 

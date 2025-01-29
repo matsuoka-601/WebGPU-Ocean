@@ -73,11 +73,13 @@ fn vs(
 
     var corner = vec3(corner_positions[vertex_index] * uniforms.sphere_size, 0.0);
     let projected_velocity = (uniforms.view_matrix * vec4f(particles[instance_index].v, 0.0)).xy;
-    let strength = 1.0;
-    let stretched_position = computeStretchedVertex(corner_positions[vertex_index] * uniforms.sphere_size, projected_velocity, strength);
-    corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, uniforms.sphere_size, strength);
+    let strength = 0.0;
+    let size = uniforms.sphere_size * min(particles[instance_index].v.r / 2, 1.0);
+    let stretched_position = computeStretchedVertex(corner_positions[vertex_index] * size, projected_velocity, strength);
+    corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, size, strength);
 
-    let speed = sqrt(dot(particles[instance_index].v, particles[instance_index].v));
+    // let speed = sqrt(dot(particles[instance_index].v, particles[instance_index].v));
+    let speed = particles[instance_index].v.r;
     // let projected_velocity = (uniforms.view_matrix * vec4f(particles[instance_index].v, 0.0)).xy;
     // let stretched_position = computeStretchedVertex(uniforms.sphere_size * corner_positions[vertex_index], projected_velocity, 10.0);
     // corner = vec3(stretched_position, 0.0);
@@ -136,8 +138,9 @@ fn fs(input: FragmentInput) -> FragmentOutput {
     out.frag_depth = clip_space_pos.z / clip_space_pos.w;
 
     var diffuse: f32 = max(0.0, dot(normal, normalize(vec3(1.0, 1.0, 1.0))));
-    var color: vec3f = value_to_color(input.speed / 1.5);
+    // var color: vec3f = value_to_color(input.speed / 1.5);
+    var color: vec3f = vec3f(input.speed / 2, 0, 0);
 
-    out.frag_color = vec4(color * diffuse, 1.);
+    out.frag_color = vec4(color, 1.);
     return out;
 }

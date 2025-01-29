@@ -114,7 +114,7 @@ async function main() {
 	})
 	const posvelBuffer = device.createBuffer({
 		label: 'position buffer', 
-		size: 32 * numParticlesMax,  // 32 = 2 x vec3f + padding
+		size: 32 * numParticlesMax,  // 32 = 2 x vec3f + 1 x f32 + padding
 		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 	})
 	const renderUniformBuffer = device.createBuffer({
