@@ -5,6 +5,10 @@ export class Camera {
     isDragging: boolean
     prevX: number
     prevY: number
+    prevHoverX: number
+    prevHoverY: number
+    currentHoverX: number
+    currentHoverY: number
     currentXtheta: number
     currentYtheta: number
     maxYTheta: number
@@ -34,17 +38,17 @@ export class Camera {
         })
 
         canvasElement.addEventListener("mousemove", (event: MouseEvent) => {
+            this.currentHoverX = event.clientX;
+            this.currentHoverY = event.clientY;
             if (this.isDragging) {
-                const currentX = event.clientX;
-                const currentY = event.clientY;
-                const deltaX = this.prevX - currentX;
-                const deltaY = this.prevY - currentY;
+                const deltaX = this.prevX - event.clientX;
+                const deltaY = this.prevY - event.clientY;
                 this.currentXtheta += this.sensitivity * deltaX;
                 this.currentYtheta += this.sensitivity * deltaY;
                 if (this.currentYtheta > this.maxYTheta) this.currentYtheta = this.maxYTheta
                 if (this.currentYtheta < this.minYTheta) this.currentYtheta = this.minYTheta
-                this.prevX = currentX;
-                this.prevY = currentY;
+                this.prevX = event.clientX;
+                this.prevY = event.clientY;
                 this.recalculateView()
             }
         });

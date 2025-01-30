@@ -145,7 +145,7 @@ async function main() {
 	const sphSimulator = new SPHSimulator(particleBuffer, posvelBuffer, sphDiameter, device)
 
 	const mlsmpmRenderer = new FluidRenderer(device, canvas, presentationFormat, mlsmpmRadius, mlsmpmFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
-	const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, mlsmpmDiameter, device, renderUniformBuffer, mlsmpmRenderer.depthMapTextureView)
+	const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, mlsmpmDiameter, device, renderUniformBuffer, mlsmpmRenderer.depthMapTextureView, canvas)
 	const sphRenderer = new FluidRenderer(device, canvas, presentationFormat, sphRadius, sphFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
 
 	console.log("simulator initialization done")
@@ -211,6 +211,9 @@ async function main() {
 	let sphereRenderFl = false
 	let sphFl = false
 	let boxWidthRatio = 1.
+
+	let prevHoverX = 0.
+	let prevHoverY = 0.
 
 	console.log("simulation start")
 	async function frame() {
@@ -280,11 +283,16 @@ async function main() {
 			if (!stop) sphSimulator.execute(commandEncoder)
 			sphRenderer.execute(context, commandEncoder, sphSimulator.numParticles, sphereRenderFl)
 		} else {
-			if (!stop) mlsmpmSimulator.execute(commandEncoder)
+			if (!stop) mlsmpmSimulator.execute(commandEncoder, 
+					[camera.currentHoverX / canvas.clientWidth, camera.currentHoverY / canvas.clientHeight], 
+					[(camera.currentHoverX - prevHoverX) / canvas.clientWidth, -(camera.currentHoverY - prevHoverY) / canvas.clientHeight])
 			mlsmpmRenderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles, sphereRenderFl)
 		}
 
 		device.queue.submit([commandEncoder.finish()])
+
+		prevHoverX = camera.currentHoverX;
+		prevHoverY = camera.currentHoverY;
 
 		const end = performance.now();
 		// console.log(`js: ${(end - start).toFixed(1)}ms`);

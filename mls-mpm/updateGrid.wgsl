@@ -12,6 +12,11 @@ struct RenderUniforms {
     view_matrix: mat4x4f, 
     inv_view_matrix: mat4x4f, 
 }
+struct CanvasInfo {
+    screenSize: vec2f, 
+    mouseCoord : vec2f, 
+    mouseVel : vec2f, 
+}
 
 override fixed_point_multiplier: f32; 
 override dt: f32; 
@@ -21,6 +26,7 @@ override dt: f32;
 @group(0) @binding(2) var<uniform> init_box_size: vec3f;
 @group(0) @binding(3) var<uniform> uniforms: RenderUniforms;
 @group(0) @binding(4) var depthTexture: texture_2d<f32>;
+@group(0) @binding(5) var<uniform> mouseInfo: CanvasInfo; 
 
 fn encodeFixedPoint(floating_point: f32) -> i32 {
 	return i32(floating_point * fixed_point_multiplier);
@@ -46,9 +52,9 @@ fn getViewPosFromTexCoord(tex_coord: vec2f, iuv: vec2f) -> vec3f {
 
 @compute @workgroup_size(64)
 fn updateGrid(@builtin(global_invocation_id) id: vec3<u32>) {
-    if (id.x < arrayLength(&cells)) {
-        let uv = vec2f(0.5, 0.5);
-        let iuv = uv * vec2f(896, 469);
+    if (id.x < arrayLength(&cells)) { // TODO : 変える
+        let uv: vec2f = mouseInfo.mouseCoord;
+        let iuv = uv * mouseInfo.screenSize;
         let depth: f32 = abs(textureLoad(depthTexture, vec2u(iuv), 0).x);
         var mouseCellIndex: u32 = 1000000000; // 適当な invalid 値
         var cellSquareDistToMouse: f32 = 1e9;
@@ -62,8 +68,12 @@ fn updateGrid(@builtin(global_invocation_id) id: vec3<u32>) {
                                 u32(mouseCellPos.z);
             let center = real_box_size / 2;
             // forceDir = normalize(mouseWorldPos.xyz - center); // ここを変えてみよう
-            forceDir = normalize((uniforms.inv_view_matrix * vec4f(1, 1, 3, 0)).xyz);
-
+            // 速度が 0 よりおおきいときのみ
+            if (dot(mouseInfo.mouseVel, mouseInfo.mouseVel) > 0.) {
+                forceDir = (uniforms.inv_view_matrix * vec4f(2 * mouseInfo.mouseVel, -0.0, 0)).xyz; // 方向なので 0
+            } else {
+                forceDir = vec3f(0.);
+            }
 
             var x: f32 = f32(i32(id.x) / i32(init_box_size.z) / i32(init_box_size.y));
             var y: f32 = f32((i32(id.x) / i32(init_box_size.z)) % i32(init_box_size.y));
@@ -74,7 +84,7 @@ fn updateGrid(@builtin(global_invocation_id) id: vec3<u32>) {
         }
 
         let dt = dt;
-        let r = 10.;
+        let r = 6.;
 
         if (cells[id.x].mass > 0) { // 0 との比較は普通にしてよい
             var float_v: vec3f = vec3f(
@@ -84,16 +94,16 @@ fn updateGrid(@builtin(global_invocation_id) id: vec3<u32>) {
             );
             float_v /= decodeFixedPoint(cells[id.x].mass);
             
-            // if (cellSquareDistToMouse < r * r) { 
-            //     let strength = (r * r - cellSquareDistToMouse) / (r * r) * 0.1;
-            //     cells[id.x].vx = encodeFixedPoint(float_v.x + strength * forceDir.x); 
-            //     cells[id.x].vy = encodeFixedPoint(float_v.y + strength * forceDir.y); 
-            //     cells[id.x].vz = encodeFixedPoint(float_v.z + strength * forceDir.z); 
-            // } else {
+            if (cellSquareDistToMouse < r * r) { 
+                let strength = (r * r - cellSquareDistToMouse) / (r * r) * 5;
+                cells[id.x].vx = encodeFixedPoint(float_v.x + strength * forceDir.x); 
+                cells[id.x].vy = encodeFixedPoint(float_v.y + strength * forceDir.y); 
+                cells[id.x].vz = encodeFixedPoint(float_v.z + strength * forceDir.z); 
+            } else {
                 cells[id.x].vx = encodeFixedPoint(float_v.x);
                 cells[id.x].vy = encodeFixedPoint(float_v.y); 
                 cells[id.x].vz = encodeFixedPoint(float_v.z);
-            // } 
+            } 
 
             var x: i32 = i32(id.x) / i32(init_box_size.z) / i32(init_box_size.y);
             var y: i32 = (i32(id.x) / i32(init_box_size.z)) % i32(init_box_size.y);
