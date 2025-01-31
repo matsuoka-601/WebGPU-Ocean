@@ -75,7 +75,10 @@ export class FluidRenderer {
                 targets: [
                     {
                         format: presentationFormat, 
-                    }
+                    }, 
+                    {
+                        format: 'r32float',
+                    },
                 ]
             }, 
             primitive: {
@@ -421,7 +424,13 @@ export class FluidRenderer {
             colorAttachments: [
                 {
                     view: context.getCurrentTexture().createView(),
-                    clearValue: { r: 0.7, g: 0.7, b: 0.7, a: 1.0 },
+                    clearValue: { r: 0.7, g: 0.7, b: 0.75, a: 1.0 },
+                    loadOp: 'clear',
+                    storeOp: 'store',
+                },
+                {
+                    view: this.depthMapTextureView,
+                    clearValue: { r: 1e6, g: 0.0, b: 0.0, a: 1.0 }, // 背景は十分大きい深さの値でいいか？
                     loadOp: 'clear',
                     storeOp: 'store',
                 },

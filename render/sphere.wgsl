@@ -12,7 +12,8 @@ struct FragmentInput {
 }
 
 struct FragmentOutput {
-    @location(0) frag_color: vec4f, 
+    @location(0) color: vec4f, 
+    @location(1) depth: vec4f, 
     @builtin(frag_depth) frag_depth: f32, 
 }
 
@@ -140,6 +141,7 @@ fn fs(input: FragmentInput) -> FragmentOutput {
     var diffuse: f32 = max(0.0, dot(normal, normalize(vec3(1.0, 1.0, 1.0))));
     var color: vec3f = value_to_color(input.speed / 2);
 
-    out.frag_color = vec4(diffuse * color, 1.);
+    out.color = vec4(diffuse * color, 1.);
+    out.depth = vec4(real_view_pos.z, 0., 0., 1.);
     return out;
 }
