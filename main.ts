@@ -134,9 +134,16 @@ async function main() {
 	const mlsmpmRadius = 0.7
 	const mlsmpmDiameter = 2 * mlsmpmRadius
 	const mlsmpmZoomRate = 0.7
-
-	const mlsmpmRenderer = new FluidRenderer(device, canvas, presentationFormat, mlsmpmRadius, mlsmpmFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
-	const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, mlsmpmDiameter, device, renderUniformBuffer, mlsmpmRenderer.depthMapTextureView, canvas)
+	const depthMapTexture = device.createTexture({
+		label: 'depth map texture', 
+		size: [canvas.width, canvas.height, 1],
+		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+		format: 'r32float',
+	});
+	const depthMapTextureView = depthMapTexture.createView()
+	const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, mlsmpmDiameter, device, renderUniformBuffer, depthMapTextureView, canvas)
+	const mlsmpmRenderer = new FluidRenderer(device, canvas, presentationFormat, mlsmpmRadius, mlsmpmFov, posvelBuffer, renderUniformBuffer, 
+		cubemapTextureView, depthMapTextureView, mlsmpmSimulator.restDensity)
 
 	console.log("simulator initialization done")
 

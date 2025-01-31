@@ -8,7 +8,7 @@ struct FragmentInput {
 }
 
 struct FilterUniforms {
-    blur_dir: vec2f, // 解像度で割る
+    blur_dir: vec2f, 
 }
 
 @fragment
@@ -19,7 +19,6 @@ fn fs(input: FragmentInput) -> @location(0) vec4f {
         return vec4f(0., 0., 0., 1.);
     }
 
-    // var filter_size: i32 = i32(uniforms.filter_size);
     var filter_size: i32 = 30; // とりあえずべた書き
     var sigma: f32 = f32(filter_size) / 3.0;
     var two_sigma: f32 = 2.0 * sigma * sigma;

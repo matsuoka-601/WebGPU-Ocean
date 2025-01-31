@@ -51,6 +51,8 @@ export class MLSMPMSimulator {
 
     canvasInfoValues: ArrayBuffer
 
+    restDensity: number
+
     constructor (particleBuffer: GPUBuffer, posvelBuffer: GPUBuffer, renderDiameter: number, device: GPUDevice, 
         renderUniformBuffer: GPUBuffer, depthMapTextureView: GPUTextureView, canvas: HTMLCanvasElement) 
     {
@@ -67,9 +69,11 @@ export class MLSMPMSimulator {
         const g2pModule = device.createShaderModule({ code: g2p });
         const copyPositionModule = device.createShaderModule({ code: copyPosition });
 
+        this.restDensity = 4.
+
         const constants = {
             stiffness: 3., 
-            restDensity: 4., 
+            restDensity: this.restDensity, 
             dynamic_viscosity: 0.1, 
             dt: 0.20, 
             fixed_point_multiplier: 1e7, 

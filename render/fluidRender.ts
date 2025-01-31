@@ -34,7 +34,8 @@ export class FluidRenderer {
     constructor(
         device: GPUDevice, canvas: HTMLCanvasElement, presentationFormat: GPUTextureFormat,
         radius: number, fov: number, posvelBuffer: GPUBuffer, 
-        renderUniformBuffer: GPUBuffer, cubemapTextureView: GPUTextureView
+        renderUniformBuffer: GPUBuffer, cubemapTextureView: GPUTextureView, depthMapTextureView: GPUTextureView, 
+        restDensity: number
     ) {
         this.device = device
         const maxFilterSize = 100
@@ -46,11 +47,15 @@ export class FluidRenderer {
             'screenHeight': canvas.height, 
             'screenWidth': canvas.width, 
         }
-        // TODO : filter size を設定できるようにする
         const filterConstants = {
             'depth_threshold' : radius * blurdDepthScale, 
             'max_filter_size' : maxFilterSize, 
             'projected_particle_constant' : (blurFilterSize * diameter * 0.05 * (canvas.height / 2)) / Math.tan(fov / 2), 
+        }
+        const renderEffectConstants = {
+            'restDensity' : restDensity, 
+            'stretchStrength' : 2.0, 
+            'densitySizeScale' : 3.0, 
         }
         const sampler = device.createSampler({
             magFilter: 'linear', 
@@ -69,7 +74,7 @@ export class FluidRenderer {
         this.spherePipeline = device.createRenderPipeline({
             label: 'ball pipeline', 
             layout: 'auto', 
-            vertex: { module: sphereModule }, 
+            vertex: { module: sphereModule, constants: renderEffectConstants }, 
             fragment: {
                 module: sphereModule, 
                 targets: [
@@ -93,7 +98,7 @@ export class FluidRenderer {
         this.depthMapPipeline = device.createRenderPipeline({
             label: 'depth map pipeline', 
             layout: 'auto', 
-            vertex: { module: depthMapModule },
+            vertex: { module: depthMapModule, constants: renderEffectConstants },
             fragment: {
                 module: depthMapModule,
                 targets: [
@@ -135,7 +140,8 @@ export class FluidRenderer {
             label: 'thickness map pipeline', 
             layout: 'auto', 
             vertex: { 
-                module: thicknessMapModule,  
+                module: thicknessMapModule, 
+                constants: renderEffectConstants,  
             }, 
             fragment: {
                 module: thicknessMapModule, 
@@ -194,12 +200,6 @@ export class FluidRenderer {
         });
 
         // textures
-        const depthMapTexture = device.createTexture({
-            label: 'depth map texture', 
-            size: [canvas.width, canvas.height, 1],
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-            format: 'r32float',
-        });
         const tmpDepthMapTexture = device.createTexture({ 
             label: 'temporary depth map texture', 
             size: [canvas.width, canvas.height, 1],
@@ -223,7 +223,7 @@ export class FluidRenderer {
             format: 'depth32float',
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         })
-        this.depthMapTextureView = depthMapTexture.createView()
+        this.depthMapTextureView = depthMapTextureView
         this.tmpDepthMapTextureView = tmpDepthMapTexture.createView()
         this.thicknessTextureView = thicknessTexture.createView()
         this.tmpThicknessTextureView = tmpThicknessTexture.createView()

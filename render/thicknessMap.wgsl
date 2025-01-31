@@ -25,6 +25,10 @@ struct PosVel {
 @group(0) @binding(0) var<storage> particles: array<PosVel>;
 @group(0) @binding(1) var<uniform> uniforms: RenderUniforms;
 
+override restDensity: f32;
+override stretchStrength: f32;
+override densitySizeScale: f32;
+
 // assuming center is origin
 fn computeStretchedVertex(position: vec2f, velocity_dir: vec2f, strength: f32) -> vec2f {
     // velocity_dir is obtained by normalizing velocity and set z element 0
@@ -63,11 +67,10 @@ fn vs(
         vec2(-0.5,  0.5),
     );
 
-    let size = uniforms.sphere_size * clamp(particles[instance_index].density / 1.5, 0.0, 1.0);
+    let size = uniforms.sphere_size * clamp(particles[instance_index].density / restDensity * densitySizeScale, 0.0, 1.0);
     let projected_velocity = (uniforms.view_matrix * vec4f(particles[instance_index].v, 0.0)).xy;
-    let strength = 2.0;
-    let stretched_position = computeStretchedVertex(corner_positions[vertex_index] * size, projected_velocity, strength);
-    let corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, size, strength);
+    let stretched_position = computeStretchedVertex(corner_positions[vertex_index] * size, projected_velocity, stretchStrength);
+    let corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, size, stretchStrength);
 
     let uv = corner_positions[vertex_index] + 0.5;
 
