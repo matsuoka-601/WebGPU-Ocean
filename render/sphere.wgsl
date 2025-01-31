@@ -28,6 +28,7 @@ struct RenderUniforms {
 struct PosVel {
     position: vec3f, 
     v: vec3f, 
+    density: f32, 
 }
 
 @group(0) @binding(0) var<storage> particles: array<PosVel>;
@@ -71,15 +72,14 @@ fn vs(
         vec2(-0.5,  0.5),
     );
 
-    var corner = vec3(corner_positions[vertex_index] * uniforms.sphere_size, 0.0);
+    let size = uniforms.sphere_size * clamp(particles[instance_index].density / 1.5, 0.0, 1.0);
     let projected_velocity = (uniforms.view_matrix * vec4f(particles[instance_index].v, 0.0)).xy;
-    let strength = 0.0;
-    let size = uniforms.sphere_size * min(particles[instance_index].v.r / 2, 1.0);
+    let strength = 2.0;
     let stretched_position = computeStretchedVertex(corner_positions[vertex_index] * size, projected_velocity, strength);
-    corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, size, strength);
+    let corner = vec3(stretched_position, 0.0) * scaleQuad(projected_velocity, size, strength);
 
-    // let speed = sqrt(dot(particles[instance_index].v, particles[instance_index].v));
-    let speed = particles[instance_index].v.r;
+    let speed = sqrt(dot(particles[instance_index].v, particles[instance_index].v));
+    // let speed = particles[instance_index].v.r;
     // let projected_velocity = (uniforms.view_matrix * vec4f(particles[instance_index].v, 0.0)).xy;
     // let stretched_position = computeStretchedVertex(uniforms.sphere_size * corner_positions[vertex_index], projected_velocity, 10.0);
     // corner = vec3(stretched_position, 0.0);
@@ -138,9 +138,8 @@ fn fs(input: FragmentInput) -> FragmentOutput {
     out.frag_depth = clip_space_pos.z / clip_space_pos.w;
 
     var diffuse: f32 = max(0.0, dot(normal, normalize(vec3(1.0, 1.0, 1.0))));
-    // var color: vec3f = value_to_color(input.speed / 1.5);
-    var color: vec3f = vec3f(input.speed / 2, 0, 0);
+    var color: vec3f = value_to_color(input.speed / 2);
 
-    out.frag_color = vec4(color, 1.);
+    out.frag_color = vec4(diffuse * color, 1.);
     return out;
 }

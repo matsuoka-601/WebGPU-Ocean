@@ -3,7 +3,6 @@ import { mat4 } from 'wgpu-matrix'
 
 import { Camera } from './camera'
 import { mlsmpmParticleStructSize, MLSMPMSimulator } from './mls-mpm/mls-mpm'
-import { SPHSimulator, sphParticleStructSize } from './sph/sph';
 import { renderUniformsViews, renderUniformsValues, numParticlesMax } from './common'
 import { FluidRenderer } from './render/fluidRender'
 
@@ -106,7 +105,7 @@ async function main() {
 	renderUniformsViews.texel_size.set([1.0 / canvas.width, 1.0 / canvas.height]);
 
 	// storage buffer を作る
-	const maxParticleStructSize = Math.max(mlsmpmParticleStructSize, sphParticleStructSize)
+	const maxParticleStructSize = mlsmpmParticleStructSize
 	const particleBuffer = device.createBuffer({
 		label: 'particles buffer', 
 		size: maxParticleStructSize * numParticlesMax, 
@@ -128,25 +127,16 @@ async function main() {
 	let mlsmpmNumParticleParams = [40000, 0, 120000, 200000]
 	let mlsmpmInitBoxSizes = [[56, 56, 56], [60, 60, 60], [45, 40, 80], [50, 50, 80]]
 	let mlsmpmInitDistances = [70, 70, 90, 100]
-	let sphNumParticleParams = [10000, 20000, 30000, 40000]
-	let sphInitBoxSizes = [[0.7, 2.0, 0.7], [1.0, 2.0, 1.0], [1.2, 2.0, 1.2], [1.4, 2.0, 1.4]]
-	let sphInitDistances = [2.6, 3.0, 3.4, 3.8]
 
 	const canvasElement = document.getElementById("fluidCanvas") as HTMLCanvasElement;
 	// シミュレーション，カメラの初期化
 	const mlsmpmFov = 45 * Math.PI / 180
 	const mlsmpmRadius = 0.7
 	const mlsmpmDiameter = 2 * mlsmpmRadius
-	const mlsmpmZoomRate = 1.5
-	const sphFov = 45 * Math.PI / 180
-	const sphRadius = 0.04
-	const sphDiameter = 2 * sphRadius
-	const sphZoomRate = 0.05
-	const sphSimulator = new SPHSimulator(particleBuffer, posvelBuffer, sphDiameter, device)
+	const mlsmpmZoomRate = 0.7
 
 	const mlsmpmRenderer = new FluidRenderer(device, canvas, presentationFormat, mlsmpmRadius, mlsmpmFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
 	const mlsmpmSimulator = new MLSMPMSimulator(particleBuffer, posvelBuffer, mlsmpmDiameter, device, renderUniformBuffer, mlsmpmRenderer.depthMapTextureView, canvas)
-	const sphRenderer = new FluidRenderer(device, canvas, presentationFormat, sphRadius, sphFov, posvelBuffer, renderUniformBuffer, cubemapTextureView)
 
 	console.log("simulator initialization done")
 
@@ -190,7 +180,6 @@ async function main() {
 	veryLargeValue.textContent = "200,000"
 
 	let sphereRenderFl = false
-	let sphFl = false
 	let boxWidthRatio = 1.
 
 	let prevHoverX = 0.
@@ -217,8 +206,8 @@ async function main() {
 		const particle = document.getElementById("particle") as HTMLInputElement
 		sphereRenderFl = particle.checked
 		let curBoxWidthRatio = parseInt(slider.value) / 200 + 0.5
-		const minClosingSpeed = sphFl ? -0.015 : -0.01
-		const maxOpeningSpeed = sphFl ? 0.015 : 0.04
+		const minClosingSpeed = -0.01
+		const maxOpeningSpeed = 0.04
 		let dVal = Math.max(curBoxWidthRatio - boxWidthRatio, minClosingSpeed)
 		dVal = Math.min(dVal, maxOpeningSpeed);
 		boxWidthRatio += dVal

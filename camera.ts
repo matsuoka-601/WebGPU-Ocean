@@ -44,7 +44,7 @@ export class Camera {
                 const deltaX = this.prevX - event.clientX;
                 const deltaY = this.prevY - event.clientY;
                 this.currentXtheta += this.sensitivity * deltaX;
-                this.currentYtheta += this.sensitivity * deltaY;
+                // this.currentYtheta += this.sensitivity * deltaY;
                 if (this.currentYtheta > this.maxYTheta) this.currentYtheta = this.maxYTheta
                 if (this.currentYtheta < this.minYTheta) this.currentYtheta = this.minYTheta
                 this.prevX = event.clientX;
@@ -63,7 +63,8 @@ export class Camera {
         this.prevX = 0
         this.prevY = 0
         this.currentXtheta = Math.PI / 4 * 1
-        this.currentYtheta = -Math.PI / 12
+        // this.currentYtheta = -Math.PI / 12
+        this.currentYtheta = 0
         this.maxYTheta = 0
         this.minYTheta = -0.99 * Math.PI / 2.
         this.sensitivity = 0.005
