@@ -163,25 +163,6 @@ async function main() {
 			numberButtonPressedButton = target.value
 		}
 	}); 
-	let simulationModeForm = document.getElementById('simulation-mode') as HTMLFormElement;
-	let simulationModePressed = false;
-	let simulationModePressedButton = "mls-mpm"
-	simulationModeForm.addEventListener('change', function(event) {
-		const target = event.target as HTMLInputElement
-		if (target?.name === 'options') {
-			simulationModePressed = true
-			simulationModePressedButton = target.value
-		}
-	}); 
-	// スペースキーの監視
-	let stop = false;
-	document.addEventListener("keydown", (event) => {
-		if (event.code === "Space") {
-			event.preventDefault(); 
-			stop = !stop;
-		}
-	});
-
 	const smallValue = document.getElementById("small-value") as HTMLSpanElement;
 	const mediumValue = document.getElementById("medium-value") as HTMLSpanElement;
 	const largeValue = document.getElementById("large-value") as HTMLSpanElement;
@@ -219,37 +200,12 @@ async function main() {
 	async function frame() {
 		const start = performance.now();
 
-		if (simulationModePressed) {
-			if (simulationModePressedButton == "mlsmpm") {
-				sphFl = false
-				smallValue.textContent = "40,000"
-				mediumValue.textContent = "70,000"
-				largeValue.textContent = "120,000"
-				veryLargeValue.textContent = "200,000"
-			} else {
-				sphFl = true
-				smallValue.textContent = "10,000"
-				mediumValue.textContent = "20,000"
-				largeValue.textContent = "30,000"
-				veryLargeValue.textContent = "40,000"
-			}
-			simulationModePressed = false
-			numberButtonPressed = true 
-		}
-
 		if (numberButtonPressed) { 
 			const paramsIdx = parseInt(numberButtonPressedButton)
-			if (sphFl) {
-				initBoxSize = sphInitBoxSizes[paramsIdx]
-				sphSimulator.reset(sphNumParticleParams[paramsIdx], initBoxSize)
-				camera.reset(canvasElement, sphInitDistances[paramsIdx], [0, -initBoxSize[1] + 0.1, 0], 
-					sphFov, sphZoomRate)
-			} else {
-				initBoxSize = mlsmpmInitBoxSizes[paramsIdx]
-				mlsmpmSimulator.reset(mlsmpmNumParticleParams[paramsIdx], initBoxSize)
-				camera.reset(canvasElement, mlsmpmInitDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 2, initBoxSize[2] / 2], 
-					mlsmpmFov, mlsmpmZoomRate)
-			}
+			initBoxSize = mlsmpmInitBoxSizes[paramsIdx]
+			mlsmpmSimulator.reset(mlsmpmNumParticleParams[paramsIdx], initBoxSize)
+			camera.reset(canvasElement, mlsmpmInitDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 2, initBoxSize[2] / 2], 
+				mlsmpmFov, mlsmpmZoomRate)
 			realBoxSize = [...initBoxSize]
 			let slider = document.getElementById("slider") as HTMLInputElement
 			slider.value = "100"
@@ -269,25 +225,16 @@ async function main() {
 
 		// 行列の更新
 		realBoxSize[2] = initBoxSize[2] * boxWidthRatio
-		if (sphFl) {
-			sphSimulator.changeBoxSize(realBoxSize)
-		} else {
-			mlsmpmSimulator.changeBoxSize(realBoxSize)
-		}
+		mlsmpmSimulator.changeBoxSize(realBoxSize)
 		device.queue.writeBuffer(renderUniformBuffer, 0, renderUniformsValues) 
 
 		const commandEncoder = device.createCommandEncoder()
 
 		// 計算のためのパス
-		if (sphFl) {
-			if (!stop) sphSimulator.execute(commandEncoder)
-			sphRenderer.execute(context, commandEncoder, sphSimulator.numParticles, sphereRenderFl)
-		} else {
-			if (!stop) mlsmpmSimulator.execute(commandEncoder, 
-					[camera.currentHoverX / canvas.clientWidth, camera.currentHoverY / canvas.clientHeight], 
-					[(camera.currentHoverX - prevHoverX) / canvas.clientWidth, -(camera.currentHoverY - prevHoverY) / canvas.clientHeight])
-			mlsmpmRenderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles, sphereRenderFl)
-		}
+		mlsmpmSimulator.execute(commandEncoder, 
+				[camera.currentHoverX / canvas.clientWidth, camera.currentHoverY / canvas.clientHeight], 
+				[(camera.currentHoverX - prevHoverX) / canvas.clientWidth, -(camera.currentHoverY - prevHoverY) / canvas.clientHeight])
+		mlsmpmRenderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles, sphereRenderFl)
 
 		device.queue.submit([commandEncoder.finish()])
 
@@ -295,7 +242,6 @@ async function main() {
 		prevHoverY = camera.currentHoverY;
 
 		const end = performance.now();
-		// console.log(`js: ${(end - start).toFixed(1)}ms`);
 
 		requestAnimationFrame(frame)
 	} 

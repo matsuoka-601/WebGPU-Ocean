@@ -316,7 +316,7 @@ export class MLSMPMSimulator {
             mouseVel: new Float32Array(this.canvasInfoValues, 16, 2),
         };
         canvasInfoViews.mouseCoord.set([mouseCoord[0], mouseCoord[1]])
-        canvasInfoViews.mouseVel.set([mouseVel[0], mouseVel[1]])
+        canvasInfoViews.mouseVel.set([mouseVel[0] * (canvasInfoViews.screenSize[0] / canvasInfoViews.screenSize[1]), mouseVel[1]])
         this.device.queue.writeBuffer(this.canvasInfoUniformBuffer, 0, this.canvasInfoValues);
 
         if (this.frameCount % 2 == 0 && this.numParticles < 60000) { // TODO : dt に依存しないようにする
