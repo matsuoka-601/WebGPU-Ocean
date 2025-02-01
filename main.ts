@@ -178,7 +178,7 @@ async function main() {
 	let initBoxSize = mlsmpmInitBoxSizes[1]
 	let realBoxSize = [...initBoxSize];
 	mlsmpmSimulator.reset(mlsmpmNumParticleParams[1], mlsmpmInitBoxSizes[1])
-	camera.reset(canvasElement, initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 2, initBoxSize[2] / 2], 
+	camera.reset(initDistance, [initBoxSize[0] / 2, initBoxSize[1] / 2, initBoxSize[2] / 2], 
 		mlsmpmFov, mlsmpmZoomRate)
 
 	smallValue.textContent = "40,000"
@@ -189,9 +189,6 @@ async function main() {
 	let sphereRenderFl = false
 	let boxWidthRatio = 1.
 
-	let prevHoverX = 0.
-	let prevHoverY = 0.
-
 	console.log("simulation start")
 	async function frame() {
 		const start = performance.now();
@@ -200,7 +197,7 @@ async function main() {
 			const paramsIdx = parseInt(numberButtonPressedButton)
 			initBoxSize = mlsmpmInitBoxSizes[paramsIdx]
 			mlsmpmSimulator.reset(mlsmpmNumParticleParams[paramsIdx], initBoxSize)
-			camera.reset(canvasElement, mlsmpmInitDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 2, initBoxSize[2] / 2], 
+			camera.reset(mlsmpmInitDistances[paramsIdx], [initBoxSize[0] / 2, initBoxSize[1] / 2, initBoxSize[2] / 2], 
 				mlsmpmFov, mlsmpmZoomRate)
 			realBoxSize = [...initBoxSize]
 			let slider = document.getElementById("slider") as HTMLInputElement
@@ -229,13 +226,12 @@ async function main() {
 		// 計算のためのパス
 		mlsmpmSimulator.execute(commandEncoder, 
 				[camera.currentHoverX / canvas.clientWidth, camera.currentHoverY / canvas.clientHeight], 
-				[(camera.currentHoverX - prevHoverX) / canvas.clientWidth, -(camera.currentHoverY - prevHoverY) / canvas.clientHeight])
+				camera.calcMouseVelocity())
 		mlsmpmRenderer.execute(context, commandEncoder, mlsmpmSimulator.numParticles, sphereRenderFl)
 
 		device.queue.submit([commandEncoder.finish()])
 
-		prevHoverX = camera.currentHoverX;
-		prevHoverY = camera.currentHoverY;
+		camera.setNewPrevMouseCoord();
 
 		const end = performance.now();
 

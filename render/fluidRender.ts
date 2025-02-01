@@ -55,7 +55,7 @@ export class FluidRenderer {
         const renderEffectConstants = {
             'restDensity' : restDensity, 
             'stretchStrength' : 2.0, 
-            'densitySizeScale' : 3.0, 
+            'densitySizeScale' : 4.0, 
         }
         const sampler = device.createSampler({
             magFilter: 'linear', 

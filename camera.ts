@@ -21,14 +21,18 @@ export class Camera {
     fov: number
     zoomRate: number
 
-    constructor (canvasElement: HTMLCanvasElement) {
-        canvasElement.addEventListener("mousedown", (event: MouseEvent) => {
+    canvas: HTMLCanvasElement
+
+    constructor (canvas: HTMLCanvasElement) {
+        this.canvas = canvas;
+
+        this.canvas.addEventListener("mousedown", (event: MouseEvent) => {
             this.isDragging = true;
             this.prevX = event.clientX;
             this.prevY = event.clientY;
         });
 
-        canvasElement.addEventListener("wheel", (event: WheelEvent) => {
+        this.canvas.addEventListener("wheel", (event: WheelEvent) => {
             event.preventDefault();
             var scrollDelta = event.deltaY;
             this.currentDistance += ((scrollDelta > 0) ? 1 : -1) * this.zoomRate;
@@ -37,12 +41,12 @@ export class Camera {
             this.recalculateView()
         })
 
-        canvasElement.addEventListener("mousemove", (event: MouseEvent) => {
+        this.canvas.addEventListener("mousemove", (event: MouseEvent) => {
             this.currentHoverX = event.clientX;
             this.currentHoverY = event.clientY;
             if (this.isDragging) {
                 const deltaX = this.prevX - event.clientX;
-                const deltaY = this.prevY - event.clientY;
+                // const deltaY = this.prevY - event.clientY;
                 this.currentXtheta += this.sensitivity * deltaX;
                 // this.currentYtheta += this.sensitivity * deltaY;
                 if (this.currentYtheta > this.maxYTheta) this.currentYtheta = this.maxYTheta
@@ -53,12 +57,12 @@ export class Camera {
             }
         });
         
-        canvasElement.addEventListener("mouseup", () => {
+        this.canvas.addEventListener("mouseup", () => {
             if (this.isDragging) this.isDragging = false;
         });
     }
 
-    reset(canvasElement: HTMLCanvasElement, initDistance: number, target: number[], fov: number, zoomRate: number) {
+    reset(initDistance: number, target: number[], fov: number, zoomRate: number) {
         this.isDragging = false
         this.prevX = 0
         this.prevY = 0
@@ -70,13 +74,13 @@ export class Camera {
         this.sensitivity = 0.005
         this.currentDistance = initDistance
         this.maxDistance = 2. * this.currentDistance
-        this.minDistance = 0.3 * this.currentDistance
+        this.minDistance = 0.7 * this.currentDistance
         this.target = target
         this.fov = fov
         this.zoomRate = zoomRate
 
-        const aspect = canvasElement.clientWidth / canvasElement.clientHeight
-        const projection = mat4.perspective(fov, aspect, 0.1, 300) // TODO : ここの max を変える
+        const aspect = this.canvas.clientWidth / this.canvas.clientHeight
+        const projection = mat4.perspective(fov, aspect, 0.1, 300) 
         renderUniformsViews.projection_matrix.set(projection)
         renderUniformsViews.inv_projection_matrix.set(mat4.inverse(projection))
         this.recalculateView()
@@ -98,5 +102,16 @@ export class Camera {
 
         renderUniformsViews.view_matrix.set(view)
         renderUniformsViews.inv_view_matrix.set(mat4.inverse(view))
+    }
+
+    calcMouseVelocity() {
+        let velX = (this.currentHoverX - this.prevHoverX) / this.canvas.width * (this.canvas.width / this.canvas.height);
+        let velY = -(this.currentHoverY - this.prevHoverY) / this.canvas.height;
+        return [velX, velY]
+    }
+
+    setNewPrevMouseCoord() {
+        this.prevHoverX = this.currentHoverX;
+        this.prevHoverY = this.currentHoverY;
     }
 }
