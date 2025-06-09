@@ -32,7 +32,7 @@ If you have trouble running the repo, feel free to open an issue.
 - Implement a rendering method described in [Unified Spray, Foam and Bubbles for Particle-Based Fluids](https://cg.informatik.uni-freiburg.de/publications/2012_CGI_sprayFoamBubbles.pdf)
   - This would make the simulation look more spectacular!
   - But I suspect this method might be a bit too expensive for real-time simulation since it requires neighborhood search. Is there a cheaper way to generate foams?🤔
-- Use better rendering method with less artifacts like [Narrow-Range Filter](https://dl.acm.org/doi/10.1145/3203201)
+- ~~Use better rendering method with less artifacts like [Narrow-Range Filter](https://dl.acm.org/doi/10.1145/3203201)~~ ⇒ **Done** (but not in this repo, see [Splash](https://github.com/matsuoka-601/Splash) !)
   - Currently, there are some artifacts derived from bilateral filter in rendered fluid. Using Narrow-Range Filter would reduce those artifacts.
 ## Known bug (feel free to fix them!)
 - SPH mode seems to crash on Mac
